@@ -1,15 +1,25 @@
-const Database = require('better-sqlite3');
+const initSqlJs = require('sql.js');
+const fs = require('fs');
 const path = require('path');
 
 const dbPath = path.join(__dirname, '..', 'repairs.db');
-const db = new Database(dbPath);
-
-// Enable foreign keys
-db.pragma('foreign_keys = ON');
+let db = null;
 
 // Initialize database schema
-function initializeDatabase() {
+async function initializeDatabase() {
   try {
+    const SQL = await initSqlJs();
+    
+    // Try to load existing database from file
+    if (fs.existsSync(dbPath)) {
+      const filebuffer = fs.readFileSync(dbPath);
+      db = new SQL.Database(filebuffer);
+      console.log('[Database] Loaded existing database');
+    } else {
+      db = new SQL.Database();
+      console.log('[Database] Created new database');
+    }
+
     // Create repairs table if it doesn't exist
     const createTableSQL = `
       CREATE TABLE IF NOT EXISTS repairs (
@@ -27,13 +37,16 @@ function initializeDatabase() {
       );
     `;
 
-    db.exec(createTableSQL);
+    db.run(createTableSQL);
 
     // Create index on repair_id for faster lookups
     const createIndexSQL = `
       CREATE INDEX IF NOT EXISTS idx_repair_id ON repairs(repair_id);
     `;
-    db.exec(createIndexSQL);
+    db.run(createIndexSQL);
+
+    // Save database to file
+    saveDatabase();
 
     console.log('[Database] Initialization complete');
   } catch (error) {
@@ -42,8 +55,26 @@ function initializeDatabase() {
   }
 }
 
-// Export database and initialization function
+// Save database to file
+function saveDatabase() {
+  if (db) {
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(dbPath, buffer);
+  }
+}
+
+// Get database instance
+function getDatabase() {
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+  return db;
+}
+
+// Export database functions
 module.exports = {
-  db,
   initializeDatabase,
+  getDatabase,
+  saveDatabase,
 };

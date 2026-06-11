@@ -163,7 +163,7 @@ pnpm start
 ## Deployment Notes
 
 - Run locally with frontend on `http://localhost:3000` and backend on `http://localhost:5000`
-- Backend requires a Node.js server and is not deployed to Vercel
+- Backend requires a Node.js server
 - Environment variables needed:
   - Backend: `PORT`, `NODE_ENV`
   - Frontend: `NEXT_PUBLIC_API_URL` (optional, defaults to localhost:5000)

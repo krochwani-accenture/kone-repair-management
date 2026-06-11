@@ -1,6 +1,6 @@
 # Local Setup & Run
 
-This repository is configured to run locally only. It is not deployed to Vercel and should be started from your local machine.
+This repository is configured to run locally only. It should be started from your local machine.
 
 ## Prerequisites
 
@@ -68,6 +68,5 @@ Returns a simple health check response.
 
 ## Notes
 
-- Do not deploy this repository to Vercel.
 - The backend runs as a separate Node.js server.
 - The frontend and backend communicate over `localhost`.

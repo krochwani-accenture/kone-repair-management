@@ -2,7 +2,7 @@
 
 A full-stack React + Express JS application for uploading and managing Excel data with repair offerings and pricing information.
 
-This repository is configured for local development only. Do not deploy this project to Vercel.
+This repository is configured for local development only.
 
 See `LOCAL_SETUP.md` for the complete local-only setup and run instructions.
 

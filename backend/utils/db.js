@@ -1,4 +1,4 @@
-const { db } = require('../db');
+const { getDatabase, saveDatabase } = require('../db');
 
 /**
  * Save repair records to database
@@ -6,53 +6,62 @@ const { db } = require('../db');
  */
 function saveRepairsToDatabase(repairs) {
   try {
-    const insertStmt = db.prepare(`
-      INSERT INTO repairs (
-        repair_id, equipment_type, service_category, 
-        base_price, service_hours, availability, description, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+    const db = getDatabase();
+    
+    let inserted = 0;
+    let skipped = 0;
+    const errors = [];
 
-    const transaction = db.transaction((repairsArray) => {
-      let inserted = 0;
-      let skipped = 0;
-      const errors = [];
-
-      for (const repair of repairsArray) {
-        try {
-          // Validate required fields
-          if (!repair['Repair ID']) {
-            errors.push('Missing Repair ID');
-            skipped++;
-            continue;
-          }
-
-          const result = insertStmt.run(
-            repair['Repair ID'],
-            repair['Equipment Type'] || '',
-            repair['Service Category'] || '',
-            parseFloat(repair['Base Price']) || 0,
-            parseFloat(repair['Service Hours']) || 0,
-            repair['Availability'] || '',
-            repair['Description'] || '',
-            repair['Notes'] || ''
-          );
-
-          inserted++;
-        } catch (err) {
-          // Catch duplicate key errors
-          if (err.message.includes('UNIQUE constraint failed')) {
-            skipped++;
-          } else {
-            errors.push(err.message);
-          }
+    for (const repair of repairs) {
+      try {
+        // Validate required fields
+        if (!repair['Repair ID']) {
+          errors.push('Missing Repair ID');
+          skipped++;
+          continue;
         }
+
+        // Check if repair_id already exists
+        const checkResult = db.exec(
+          `SELECT id FROM repairs WHERE repair_id = ?`,
+          [repair['Repair ID']]
+        );
+
+        if (checkResult.length > 0 && checkResult[0].values.length > 0) {
+          skipped++;
+          continue;
+        }
+
+        // Insert repair record
+        const params = [
+          repair['Repair ID'],
+          repair['Equipment Type'] || '',
+          repair['Service Category'] || '',
+          parseFloat(repair['Base Price']) || 0,
+          parseFloat(repair['Service Hours']) || 0,
+          repair['Availability'] || '',
+          repair['Description'] || '',
+          repair['Notes'] || ''
+        ];
+
+        db.run(
+          `INSERT INTO repairs (
+            repair_id, equipment_type, service_category, 
+            base_price, service_hours, availability, description, notes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          params
+        );
+
+        inserted++;
+      } catch (err) {
+        errors.push(err.message);
       }
+    }
 
-      return { inserted, skipped, errors };
-    });
+    // Save database to file
+    saveDatabase();
 
-    return transaction(repairs);
+    return { inserted, skipped, errors };
   } catch (error) {
     console.error('[Database] Save error:', error);
     throw new Error(`Failed to save repairs: ${error.message}`);
@@ -64,9 +73,10 @@ function saveRepairsToDatabase(repairs) {
  */
 function getAllRepairs() {
   try {
+    const db = getDatabase();
     const stmt = db.prepare('SELECT * FROM repairs ORDER BY created_at DESC');
-    const repairs = stmt.all();
-    return repairs;
+    const result = stmt.getAsObject();
+    return result;
   } catch (error) {
     console.error('[Database] Fetch error:', error);
     throw new Error(`Failed to fetch repairs: ${error.message}`);
@@ -78,8 +88,22 @@ function getAllRepairs() {
  */
 function getRepairById(repairId) {
   try {
-    const stmt = db.prepare('SELECT * FROM repairs WHERE repair_id = ?');
-    const repair = stmt.get(repairId);
+    const db = getDatabase();
+    const results = db.exec(
+      'SELECT * FROM repairs WHERE repair_id = ?',
+      [repairId]
+    );
+    
+    if (results.length === 0) return null;
+    if (results[0].values.length === 0) return null;
+
+    // Convert result array to object
+    const columns = results[0].columns;
+    const values = results[0].values[0];
+    const repair = {};
+    columns.forEach((col, idx) => {
+      repair[col] = values[idx];
+    });
     return repair;
   } catch (error) {
     console.error('[Database] Fetch by ID error:', error);
@@ -92,9 +116,10 @@ function getRepairById(repairId) {
  */
 function getRepairCount() {
   try {
-    const stmt = db.prepare('SELECT COUNT(*) as count FROM repairs');
-    const result = stmt.get();
-    return result.count;
+    const db = getDatabase();
+    const result = db.exec('SELECT COUNT(*) as count FROM repairs');
+    if (result.length === 0) return 0;
+    return result[0].values[0][0];
   } catch (error) {
     console.error('[Database] Count error:', error);
     throw new Error(`Failed to get repair count: ${error.message}`);
@@ -106,9 +131,10 @@ function getRepairCount() {
  */
 function clearAllRepairs() {
   try {
-    const stmt = db.prepare('DELETE FROM repairs');
-    const result = stmt.run();
-    return result.changes;
+    const db = getDatabase();
+    db.run('DELETE FROM repairs');
+    saveDatabase();
+    return true;
   } catch (error) {
     console.error('[Database] Clear error:', error);
     throw new Error(`Failed to clear repairs: ${error.message}`);
