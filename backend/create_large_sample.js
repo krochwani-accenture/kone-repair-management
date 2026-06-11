@@ -1,5 +1,4 @@
 const XLSX = require('xlsx');
-const path = require('path');
 
 console.log('Creating large test file with 2500 items in "Pricing Management" sheet...');
 
@@ -61,10 +60,9 @@ const equipmentData = equipmentTypes.map((type, idx) => ({
 const equipmentSheet = XLSX.utils.json_to_sheet(equipmentData);
 XLSX.utils.book_append_sheet(wb, equipmentSheet, 'Equipment Reference');
 
-// Save file to workspace-friendly path
-const outputFile = path.join(__dirname, 'kone_repair_catalog_2500.xlsx');
-XLSX.writeFile(wb, outputFile);
-console.log(`✓ File created: ${outputFile}`);
-console.log(`✓ Pricing Management sheet: 2500 items`);
-console.log(`✓ Summary sheet: Overview`);
-console.log(`✓ Equipment Reference sheet: Equipment types`);
+// Save file
+XLSX.writeFile(wb, '/tmp/kone_repair_catalog_2500.xlsx');
+console.log(`? File created: /tmp/kone_repair_catalog_2500.xlsx`);
+console.log(`? Pricing Management sheet: 2500 items`);
+console.log(`? Summary sheet: Overview`);
+console.log(`? Equipment Reference sheet: Equipment types`);
