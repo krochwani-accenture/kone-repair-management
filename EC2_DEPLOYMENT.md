@@ -32,7 +32,7 @@ Keep this handy—you'll need it in Step 5.
 1. Go to [AWS EC2 Console](https://console.aws.amazon.com/ec2)
 2. Click **"Launch Instance"**
 3. Select **Ubuntu 22.04 LTS** (free tier eligible)
-4. Instance type: **t2.micro**
+4. Instance type: **t3.micro** (free tier)
 5. Region: **ap-south-2** (Mumbai)
 6. Create/download a **key pair** (save it as `kone-key.pem`)
 7. Click **"Launch Instance"**
@@ -144,7 +144,7 @@ pm2 stop kone-repairs-frontend
 
 ## Costs
 
-- **EC2 t2.micro**: Free for 12 months (AWS free tier)
+- **EC2 t3.micro**: Free for 12 months (AWS free tier)
 - **Data transfer**: ~$0-1/month (minimal)
 - **Total**: ~Free for 12 months
 
