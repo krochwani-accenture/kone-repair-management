@@ -1,8 +1,31 @@
 const { initializeDatabase, getDatabase } = require('./db');
 const { ddb } = require('./dynamoClient');
 const { BatchWriteCommand } = require('@aws-sdk/lib-dynamodb');
+const { CreateTableCommand, DescribeTableCommand, waitUntilTableExists } = require('@aws-sdk/client-dynamodb');
 
 const TABLE = process.env.DYNAMO_TABLE_NAME || 'Repairs';
+
+async function ensureRepairsTableExists() {
+  try {
+    await ddb.send(new DescribeTableCommand({ TableName: TABLE }));
+  } catch (error) {
+    if (error.name === 'ResourceNotFoundException') {
+      console.log(`DynamoDB table "${TABLE}" not found. Creating it now...`);
+      await ddb.send(
+        new CreateTableCommand({
+          TableName: TABLE,
+          AttributeDefinitions: [{ AttributeName: 'repair_id', AttributeType: 'S' }],
+          KeySchema: [{ AttributeName: 'repair_id', KeyType: 'HASH' }],
+          BillingMode: 'PAY_PER_REQUEST',
+        })
+      );
+      await waitUntilTableExists({ client: ddb }, { TableName: TABLE, maxWaitTime: 120 });
+      console.log(`DynamoDB table "${TABLE}" is now active.`);
+    } else {
+      throw error;
+    }
+  }
+}
 
 async function extractRepairsFromSqlite() {
   await initializeDatabase();
@@ -51,6 +74,7 @@ async function batchWrite(items) {
 
 (async () => {
   try {
+    await ensureRepairsTableExists();
     const rows = await extractRepairsFromSqlite();
     if (rows.length === 0) {
       console.log('No rows found in SQLite repairs table.');

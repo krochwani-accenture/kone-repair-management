@@ -50,6 +50,7 @@ The backend may optionally use a `.env` file in `/backend` with:
 ```bash
 PORT=5000
 NODE_ENV=development
+AWS_REGION=ap-south-2
 ```
 
 ## Local Access
