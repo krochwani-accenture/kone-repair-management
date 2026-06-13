@@ -72,16 +72,6 @@ export default function Page() {
     }
   }, [tabValue]);
 
-  useEffect(() => {
-    console.log('BUILD NEXT_PUBLIC_API_URL=', process.env.NEXT_PUBLIC_API_URL);
-    try {
-      const urlToTest = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      const u = new URL(urlToTest);
-      console.log('PARSED API URL OK ->', u.href);
-    } catch (e) {
-      console.error('Invalid API URL:', process.env.NEXT_PUBLIC_API_URL, e);
-    }
-  }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
