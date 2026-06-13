@@ -70,7 +70,7 @@ $userData = @"
 #!/bin/bash
 set -e
 yum update -y
-curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
 yum install -y nodejs git gcc gcc-c++ make python3 sqlite-devel
 npm install -g pm2
 cd /home/ec2-user
