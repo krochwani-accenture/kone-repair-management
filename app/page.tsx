@@ -33,8 +33,18 @@ import SaveIcon from '@mui/icons-material/Save';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-const REPAIRS_API_URL = process.env.NEXT_PUBLIC_REPAIRS_API_URL || API_URL;
+function normalizeApiUrl(url?: string) {
+  if (!url) {
+    return 'http://localhost:5000/api';
+  }
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  return `http://${url}`;
+}
+
+const API_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL);
+const REPAIRS_API_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_REPAIRS_API_URL || API_URL);
 
 interface TabPanelProps {
   children?: React.ReactNode;
