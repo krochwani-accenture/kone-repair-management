@@ -43,7 +43,11 @@ function normalizeApiUrl(url?: string) {
   return `http://${url}`;
 }
 
-const API_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL);
+const clientFallbackApiUrl = typeof window !== 'undefined'
+  ? `${window.location.protocol}//${window.location.hostname}:5000/api`
+  : 'http://localhost:5000/api';
+
+const API_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL || clientFallbackApiUrl);
 const REPAIRS_API_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_REPAIRS_API_URL || API_URL);
 
 interface TabPanelProps {
