@@ -5,7 +5,7 @@ const XLSX = require('xlsx');
 const path = require('path');
 require('dotenv').config();
 
-const { initializeDatabase } = require('./db_dynamo');
+const { initializeDatabase } = require('./db');
 const repairsRouter = require('./routes/repairs');
 
 const app = express();
