@@ -452,13 +452,26 @@ export default function Page() {
                     </Stack>
 
                     {(() => {
-                      // Render preview: if multiple sheets, render first sheet's data
                       if (uploadedData && uploadedData.sheets) {
                         const sheetNames = uploadedData.availableSheets && uploadedData.availableSheets.length
                           ? uploadedData.availableSheets
                           : Object.keys(uploadedData.sheets);
-                        const first = uploadedData.sheets[sheetNames[0]] || { data: [], columns: [] };
-                        return renderDataTable(first.data, first.columns, `Preview: ${sheetNames[0]}`);
+
+                        const mergedData: any[] = [];
+                        const columnsSet = new Set<string>();
+
+                        sheetNames.forEach((name: string) => {
+                          const sheet = uploadedData.sheets[name];
+                          if (sheet && Array.isArray(sheet.data)) {
+                            sheet.data.forEach((row: any) => {
+                              mergedData.push(row);
+                              Object.keys(row).forEach((key) => columnsSet.add(key));
+                            });
+                          }
+                        });
+
+                        const mergedColumns = Array.from(columnsSet);
+                        return renderDataTable(mergedData, mergedColumns, 'Excel Data Preview (All Sheets)');
                       }
 
                       return renderDataTable(
