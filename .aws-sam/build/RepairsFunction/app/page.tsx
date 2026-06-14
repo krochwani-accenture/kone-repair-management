@@ -22,11 +22,7 @@ import {
   Toolbar,
   Tabs,
   Tab,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  Chip
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SaveIcon from '@mui/icons-material/Save';
@@ -61,9 +57,6 @@ export default function Page() {
   const [fileName, setFileName] = useState('');
   const [tabValue, setTabValue] = useState(0);
   const [dbLoading, setDbLoading] = useState(false);
-  const [availableSheets, setAvailableSheets] = useState<string[]>([]);
-  const [selectedSheet, setSelectedSheet] = useState<string>('');
-  const [showSheetSelector, setShowSheetSelector] = useState(false);
 
   // Fetch data from database on component mount
   useEffect(() => {
@@ -78,35 +71,6 @@ export default function Page() {
       setFile(selectedFile);
       setFileName(selectedFile.name);
       setError(null);
-      detectSheets(selectedFile);
-    }
-  };
-
-  const detectSheets = async (fileToAnalyze: File) => {
-    setLoading(true);
-    setError(null);
-    setAvailableSheets([]);
-    setSelectedSheet('');
-
-    try {
-      const formData = new FormData();
-      formData.append('file', fileToAnalyze);
-
-      const response = await axios.post(`${API_URL}/upload/info`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (response.data.success) {
-        setAvailableSheets(response.data.sheets);
-        setSelectedSheet(response.data.sheets[0] || '');
-        setShowSheetSelector(response.data.sheets.length > 1);
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to detect sheets');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -123,9 +87,6 @@ export default function Page() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      if (selectedSheet) {
-        formData.append('sheetName', selectedSheet);
-      }
 
       const response = await axios.post(`${API_URL}/upload`, formData, {
         headers: {
@@ -136,9 +97,6 @@ export default function Page() {
       setUploadedData(response.data);
       setFile(null);
       setFileName('');
-      setAvailableSheets([]);
-      setSelectedSheet('');
-      setShowSheetSelector(false);
     } catch (err: any) {
       setError(err.response?.data?.error || err.message || 'Upload failed');
     } finally {
@@ -147,7 +105,7 @@ export default function Page() {
   };
 
   const handleSaveToDatabase = async () => {
-    if (!uploadedData || !uploadedData.data) {
+    if (!uploadedData) {
       setError('No data to save. Please upload a file first.');
       return;
     }
@@ -157,8 +115,30 @@ export default function Page() {
     setSuccess(null);
 
     try {
+      let dataToSave: any[] = [];
+
+      if (Array.isArray(uploadedData.data)) {
+        dataToSave = uploadedData.data;
+      } else if (uploadedData.sheets) {
+        const sheetNames = uploadedData.availableSheets && uploadedData.availableSheets.length
+          ? uploadedData.availableSheets
+          : Object.keys(uploadedData.sheets);
+        sheetNames.forEach((name: string) => {
+          const sheet = uploadedData.sheets[name];
+          if (sheet && Array.isArray(sheet.data)) {
+            dataToSave.push(...sheet.data);
+          }
+        });
+      }
+
+      if (dataToSave.length === 0) {
+        setError('No rows found to save.');
+        setLoading(false);
+        return;
+      }
+
       const response = await axios.post(`${REPAIRS_API_URL}/repairs/save`, {
-        data: uploadedData.data,
+        data: dataToSave,
       });
 
       if (response.data.success) {
@@ -322,31 +302,6 @@ export default function Page() {
                       </label>
                     </Box>
 
-                    {/* Sheet Selector */}
-                    {showSheetSelector && availableSheets.length > 0 && (
-                      <Card sx={{ backgroundColor: '#f0f7ff', border: '1px solid #e0e0e0' }}>
-                        <CardContent>
-                          <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 'bold' }}>
-                            Select Sheet to Upload ({availableSheets.length} sheets available)
-                          </Typography>
-                          <FormControl fullWidth>
-                            <InputLabel>Sheet Name</InputLabel>
-                            <Select
-                              value={selectedSheet}
-                              label="Sheet Name"
-                              onChange={(e) => setSelectedSheet(e.target.value)}
-                            >
-                              {availableSheets.map((sheet) => (
-                                <MenuItem key={sheet} value={sheet}>
-                                  {sheet}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        </CardContent>
-                      </Card>
-                    )}
-
                     <Stack direction="row" spacing={2} style={{ justifyContent:"flex-end" }}>
                       <Button
                         variant="outlined"
@@ -354,9 +309,6 @@ export default function Page() {
                           setFile(null);
                           setFileName('');
                           setError(null);
-                          setAvailableSheets([]);
-                          setSelectedSheet('');
-                          setShowSheetSelector(false);
                         }}
                       >
                         Clear
