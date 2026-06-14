@@ -9,10 +9,14 @@ const {
 
 const TABLE = process.env.DYNAMO_TABLE_NAME || 'Repairs';
 
+console.log("========== DYNAMODB FILE LOADED ==========");
+
 async function saveRepairsToDatabase(repairs) {
   let inserted = 0;
   let skipped = 0;
   const errors = [];
+  console.log("========== SAVE CALLED ==========");
+console.log("Rows received:", repairs?.length);
 
   console.log('[v0] Number of rows parsed:', repairs.length);
   console.log('[v0] First row keys:', Object.keys(repairs[0]));
