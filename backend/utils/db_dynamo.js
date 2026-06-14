@@ -14,8 +14,9 @@ async function saveRepairsToDatabase(repairs) {
   let skipped = 0;
   const errors = [];
 
-  console.log('[v0] Repairs data received:', repairs[0]); // Log first row
-  console.log('[v0] Column names:', Object.keys(repairs[0]));
+  console.log('[v0] Number of rows parsed:', repairs.length);
+  console.log('[v0] First row keys:', Object.keys(repairs[0]));
+  console.log('[v0] First row data:', repairs[0]);
 
   for (const r of repairs) {
     try {
