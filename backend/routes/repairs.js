@@ -6,7 +6,7 @@ const {
   getRepairById,
   getRepairCount,
   clearAllRepairs,
-} = require('../utils/db');
+} = require('../utils/db_dynamo');
 
 /**
  * POST /api/repairs/save
