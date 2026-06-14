@@ -6,12 +6,40 @@ const {
   getRepairById,
   getRepairCount,
   clearAllRepairs,
+  getRepairsByRegion,
+  getRepairCountByRegion,
 } = require('../utils/db_dynamo');
+const { getRequestRegion } = require('../auth');
+
+/**
+ * Extract region from Notes field (e.g., "Item #1 - Region: EMEA" -> "EMEA")
+ */
+function extractRegionFromNotes(notes) {
+  if (!notes) return null;
+  const match = notes.match(/Region:\s*([A-Z]+)/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
+/**
+ * Filter repairs by region for non-global users
+ */
+function filterRepairsByRegion(repairs, userRole, userRegions) {
+  if (userRole === 'global') {
+    return repairs; // Global users see all
+  }
+
+  const allowedRegions = userRegions || [];
+  return repairs.filter(repair => {
+    const region = extractRegionFromNotes(repair.notes || '');
+    return region && allowedRegions.includes(region);
+  });
+}
 
 /**
  * POST /api/repairs/save
  * Save parsed repair data to database
  * Body: { data: array of repair objects }
+ * Region is extracted from Notes field (e.g., "Region: EMEA")
  */
 router.post('/save', async (req, res) => {
   try {
@@ -29,6 +57,22 @@ router.post('/save', async (req, res) => {
         success: false,
         error: 'No data to save.',
       });
+    }
+
+    // For region users, only allow saving to their region
+    if (req.user.role === 'region') {
+      const allowedRegion = req.user.regions[0];
+      
+      // Verify all items belong to user's region
+      for (const item of data) {
+        const region = extractRegionFromNotes(item.Notes || '');
+        if (region && region !== allowedRegion) {
+          return res.status(403).json({
+            success: false,
+            error: `Access denied. You can only save repairs for region: ${allowedRegion}`,
+          });
+        }
+      }
     }
 
     const result = await saveRepairsToDatabase(data);
@@ -55,17 +99,21 @@ router.post('/save', async (req, res) => {
 /**
  * GET /api/repairs
  * Fetch all repairs from database
+ * Global users see all repairs; region users see only their region's repairs
  */
 router.get('/', async (req, res) => {
   try {
     const repairs = await getAllRepairs();
-    const count = await getRepairCount();
+    
+    // Apply region filtering based on user role
+    const filteredRepairs = filterRepairsByRegion(repairs, req.user.role, req.user.regions);
+    const count = filteredRepairs.length;
 
     res.json({
       success: true,
-      data: repairs,
+      data: filteredRepairs,
       count: count,
-      message: `Retrieved ${count} repairs from database`,
+      message: `Retrieved ${count} repairs from database (role: ${req.user.role})`,
     });
   } catch (error) {
     console.error('[API] Fetch error:', error);
@@ -79,10 +127,20 @@ router.get('/', async (req, res) => {
 /**
  * GET /api/repairs/count/total
  * Get total count of repairs in database
+ * For region users, returns count of repairs in their region only
  */
 router.get('/count/total', async (req, res) => {
   try {
-    const count = await getRepairCount();
+    let count;
+    
+    if (req.user.role === 'global') {
+      count = await getRepairCount();
+    } else {
+      // For region users, filter by their regions
+      const repairs = await getAllRepairs();
+      const filtered = filterRepairsByRegion(repairs, req.user.role, req.user.regions);
+      count = filtered.length;
+    }
 
     res.json({
       success: true,
@@ -126,6 +184,7 @@ router.delete('/clear', async (req, res) => {
 /**
  * GET /api/repairs/:repairId
  * Fetch specific repair by ID
+ * Region users can only access repairs from their region
  */
 router.get('/:repairId', async (req, res) => {
   try {
@@ -145,6 +204,17 @@ router.get('/:repairId', async (req, res) => {
         success: false,
         error: `Repair with ID ${repairId} not found`,
       });
+    }
+
+    // Check region access for non-global users
+    if (req.user.role === 'region') {
+      const repairRegion = extractRegionFromNotes(repair.notes || '');
+      if (!repairRegion || !req.user.regions.includes(repairRegion)) {
+        return res.status(403).json({
+          success: false,
+          error: `Access denied. You only have access to regions: ${req.user.regions.join(', ')}`,
+        });
+      }
     }
 
     res.json({

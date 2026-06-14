@@ -26,12 +26,19 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SaveIcon from '@mui/icons-material/Save';
 import GetAppIcon from '@mui/icons-material/GetApp';
+import LogoutIcon from '@mui/icons-material/Logout';
 import axios from 'axios';
+import { useAuth } from './hooks/useAuth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const REPAIRS_API_URL = process.env.NEXT_PUBLIC_REPAIRS_API_URL || API_URL;
@@ -52,6 +59,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function Page() {
+  const auth = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploadedData, setUploadedData] = useState<any>(null);
@@ -65,12 +73,47 @@ export default function Page() {
   const [selectedSheet, setSelectedSheet] = useState<string>('');
   const [showSheetSelector, setShowSheetSelector] = useState(false);
 
-  // Fetch data from database on component mount
+  // Login dialog state
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Show login dialog if not authenticated
   useEffect(() => {
-    if (tabValue === 1) {
+    if (!auth.isLoggedIn) {
+      setLoginOpen(true);
+    }
+  }, [auth.isLoggedIn]);
+
+  // Fetch data from database on component mount or tab change
+  useEffect(() => {
+    if (tabValue === 1 && auth.isLoggedIn) {
       fetchDataFromDatabase();
     }
-  }, [tabValue]);
+  }, [tabValue, auth.isLoggedIn]);
+
+  const handleLogin = async () => {
+    setLoginLoading(true);
+    setLoginError(null);
+
+    const result = await auth.login(loginUsername, loginPassword);
+    
+    if (result.success) {
+      setLoginUsername('');
+      setLoginPassword('');
+      setLoginOpen(false);
+    } else {
+      setLoginError(result.error || 'Login failed');
+    }
+
+    setLoginLoading(false);
+  };
+
+  const handleLogout = () => {
+    auth.logout();
+  };
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,6 +203,8 @@ export default function Page() {
     try {
       const response = await axios.post(`${REPAIRS_API_URL}/repairs/save`, {
         data: uploadedData.data,
+      }, {
+        headers: auth.getAuthHeader(),
       });
 
       if (response.data.success) {
@@ -180,7 +225,9 @@ export default function Page() {
     setError(null);
 
     try {
-      const response = await axios.get(`${REPAIRS_API_URL}/repairs`);
+      const response = await axios.get(`${REPAIRS_API_URL}/repairs`, {
+        headers: auth.getAuthHeader(),
+      });
 
       if (response.data.success) {
         setDbData(response.data);
@@ -254,11 +301,41 @@ export default function Page() {
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
             Kone Repair Offering & Pricing Management
           </Typography>
+
+          {auth.isLoggedIn && auth.user && (
+            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+              <Chip
+                label={`${auth.user.username} (${auth.user.role})`}
+                size="small"
+                sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
+              />
+              {auth.user.role === 'region' && (
+                <Chip
+                  label={`Region: ${auth.user.regions.join(', ')}`}
+                  size="small"
+                  sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                />
+              )}
+              <Button
+                color="inherit"
+                startIcon={<LogoutIcon />}
+                onClick={handleLogout}
+                sx={{ ml: 1 }}
+              >
+                Logout
+              </Button>
+            </Stack>
+          )}
         </Toolbar>
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Stack spacing={3}>
+        {!auth.isLoggedIn ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Stack spacing={3}>
           {/* Tabs for navigation */}
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
@@ -283,6 +360,11 @@ export default function Page() {
           {/* Tab 1: Upload Section */}
           <TabPanel value={tabValue} index={0}>
             <Stack spacing={3}>
+              {auth.user?.role === 'region' && (
+                <Alert severity="info">
+                  You are logged in as a region user. You can only save repairs for region: <strong>{auth.user.regions.join(', ')}</strong>
+                </Alert>
+              )}
               <Card elevation={2}>
                 <CardContent>
                   <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
@@ -445,7 +527,60 @@ export default function Page() {
             </Stack>
           </TabPanel>
         </Stack>
+        )}
       </Container>
+
+      {/* Login Dialog */}
+      <Dialog open={loginOpen} onClose={() => {}} maxWidth="sm" fullWidth>
+        <DialogTitle>Login to Repair Management System</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 2 }}>
+            {loginError && (
+              <Alert severity="error">{loginError}</Alert>
+            )}
+            <TextField
+              fullWidth
+              label="Username"
+              type="text"
+              value={loginUsername}
+              onChange={(e) => setLoginUsername(e.target.value)}
+              disabled={loginLoading}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') handleLogin();
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              disabled={loginLoading}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') handleLogin();
+              }}
+            />
+            <Alert severity="info">
+              Demo Credentials:
+              <Box sx={{ mt: 1, fontSize: '0.9em' }}>
+                <div>• admin / demo123 (Global Access)</div>
+                <div>• emea_user / demo123 (EMEA Region)</div>
+                <div>• apac_user / demo123 (APAC Region)</div>
+              </Box>
+            </Alert>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleLogin}
+            variant="contained"
+            disabled={!loginUsername || !loginPassword || loginLoading}
+            fullWidth
+          >
+            {loginLoading ? <CircularProgress size={24} /> : 'Login'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

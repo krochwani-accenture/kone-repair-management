@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const { initializeDatabase } = require('./db');
 const repairsRouter = require('./routes/repairs');
+const { loginHandler, authMiddleware } = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -115,8 +116,11 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   res.json(result);
 });
 
-// Database routes
-app.use('/api/repairs', repairsRouter);
+// Auth routes (public)
+app.post('/api/auth/login', loginHandler);
+
+// Database routes (protected)
+app.use('/api/repairs', authMiddleware, repairsRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
