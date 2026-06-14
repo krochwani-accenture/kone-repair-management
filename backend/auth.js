@@ -33,14 +33,9 @@ function loginHandler(req, res) {
       });
     }
 
-    console.log("Username received:", username);
-console.log("Password received:", password);
-console.log("Loaded users:", users);
-
     // Find user in demo list
     const user = users.find(u => u.username === username && u.password === password);
 
-    console.log("Matched user:", user);
 
     if (!user) {
       return res.status(401).json({

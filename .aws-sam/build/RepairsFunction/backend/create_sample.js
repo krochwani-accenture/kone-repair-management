@@ -37,4 +37,3 @@ const ws = XLSX.utils.json_to_sheet(data);
 const wb = XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb, ws, 'Repairs');
 XLSX.writeFile(wb, '/tmp/sample_repairs.xlsx');
-console.log('Sample file created');

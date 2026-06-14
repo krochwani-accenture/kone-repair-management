@@ -17,7 +17,6 @@ let dbReady = false;
 (async () => {
   await initializeDatabase();
   dbReady = true;
-  console.log('[Server] Database ready');
 })();
 
 // Middleware

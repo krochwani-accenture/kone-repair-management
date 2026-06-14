@@ -9,18 +9,11 @@ const {
 
 const TABLE = process.env.DYNAMO_TABLE_NAME || 'Repairs';
 
-console.log("========== DYNAMODB FILE LOADED ==========");
 
 async function saveRepairsToDatabase(repairs) {
   let inserted = 0;
   let skipped = 0;
   const errors = [];
-  console.log("========== SAVE CALLED ==========");
-console.log("Rows received:", repairs?.length);
-
-  console.log('[v0] Number of rows parsed:', repairs.length);
-  console.log('[v0] First row keys:', Object.keys(repairs[0]));
-  console.log('[v0] First row data:', repairs[0]);
 
   for (const r of repairs) {
     try {
@@ -53,12 +46,8 @@ console.log("Rows received:", repairs?.length);
 
       inserted++;
     } catch (err) {
-      console.log("Repair ID:", r['Repair ID']);
-      console.log("Error Name:", err?.name);
-      console.log("Error Message:", err?.message);
 
       if (err && err.name === 'ConditionalCheckFailedException') {
-        console.log("Duplicate detected:", r['Repair ID']);
         skipped++;
         continue;
       }

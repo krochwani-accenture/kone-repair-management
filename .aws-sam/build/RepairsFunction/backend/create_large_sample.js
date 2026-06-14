@@ -1,6 +1,5 @@
 const XLSX = require('xlsx');
 
-console.log('Creating large test file with 2500 items in "Pricing Management" sheet...');
 
 // Generate 2500 repair items for Kone
 const pricingData = [];
@@ -62,7 +61,3 @@ XLSX.utils.book_append_sheet(wb, equipmentSheet, 'Equipment Reference');
 
 // Save file
 XLSX.writeFile(wb, '/tmp/kone_repair_catalog_2500.xlsx');
-console.log(`? File created: /tmp/kone_repair_catalog_2500.xlsx`);
-console.log(`? Pricing Management sheet: 2500 items`);
-console.log(`? Summary sheet: Overview`);
-console.log(`? Equipment Reference sheet: Equipment types`);

@@ -10,7 +10,6 @@ async function ensureRepairsTableExists() {
     await ddb.send(new DescribeTableCommand({ TableName: TABLE }));
   } catch (error) {
     if (error.name === 'ResourceNotFoundException') {
-      console.log(`DynamoDB table "${TABLE}" not found. Creating it now...`);
       await ddb.send(
         new CreateTableCommand({
           TableName: TABLE,
@@ -20,7 +19,6 @@ async function ensureRepairsTableExists() {
         })
       );
       await waitUntilTableExists({ client: ddb }, { TableName: TABLE, maxWaitTime: 120 });
-      console.log(`DynamoDB table "${TABLE}" is now active.`);
     } else {
       throw error;
     }

@@ -5,9 +5,7 @@ const {
   getAllRepairs,
   getRepairById,
   getRepairCount,
-  clearAllRepairs,
-  getRepairsByRegion,
-  getRepairCountByRegion,
+  clearAllRepairs
 } = require('../utils/db_dynamo');
 const { getRequestRegion } = require('../auth');
 

@@ -14,10 +14,8 @@ async function initializeDatabase() {
     if (fs.existsSync(dbPath)) {
       const filebuffer = fs.readFileSync(dbPath);
       db = new SQL.Database(filebuffer);
-      console.log('[Database] Loaded existing database');
     } else {
       db = new SQL.Database();
-      console.log('[Database] Created new database');
     }
 
     // Create repairs table if it doesn't exist
@@ -48,7 +46,6 @@ async function initializeDatabase() {
     // Save database to file
     saveDatabase();
 
-    console.log('[Database] Initialization complete');
   } catch (error) {
     console.error('[Database] Initialization error:', error.message);
     throw error;
