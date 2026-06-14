@@ -49,10 +49,16 @@ async function saveRepairsToDatabase(repairs) {
 
       inserted++;
     } catch (err) {
+      console.log("Repair ID:", r['Repair ID']);
+      console.log("Error Name:", err?.name);
+      console.log("Error Message:", err?.message);
+
       if (err && err.name === 'ConditionalCheckFailedException') {
+        console.log("Duplicate detected:", r['Repair ID']);
         skipped++;
         continue;
       }
+
       errors.push(err.message || String(err));
     }
   }
