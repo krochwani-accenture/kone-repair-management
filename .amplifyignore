@@ -1,0 +1,14 @@
+node_modules
+.git
+.env.local
+.env.*.local
+backend/
+deploy-ec2.sh
+deploy-ec2.ps1
+.aws-sam
+.next
+dist
+build
+*.pem
+samconfig.toml
+template.yaml
