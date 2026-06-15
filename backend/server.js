@@ -109,7 +109,7 @@ app.post('/api/upload/info', upload.single('file'), (req, res) => {
   }
 
   const result = getExcelSheets(req.file.buffer);
-  
+
   if (!result.success) {
     return res.status(400).json({ error: result.error });
   }
@@ -123,12 +123,18 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     return res.status(400).json({ error: 'No file provided' });
   }
 
-  const sheetName = req.body.sheetName || null;
-  const result = parseExcelFile(req.file.buffer, sheetName);
-  
-  if (!result.success) {
-    return res.status(400).json({ error: result.error });
-  }
+  const parser = require('lambda-multipart-parser');
+
+  const parsed = await parser.parse(event);
+
+  const file = parsed.files[0];
+
+  const sheetName = parsed.sheetName || null;
+
+  const result = parseExcelFile(
+    file.content,
+    sheetName
+  );
 
   res.json(result);
 });

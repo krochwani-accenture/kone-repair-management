@@ -10,6 +10,7 @@ const users = require('../users');
 const XLSX = require('xlsx');
 
 const SECRET = process.env.JWT_SECRET || 'demo-secret-key';
+const parser = require('lambda-multipart-parser');
 
 /**
  * Create JWT token for user
@@ -86,7 +87,7 @@ function parseExcelFile(fileBuffer, sheetName = null) {
       : workbook.SheetNames[0];
     const sheet = workbook.Sheets[selectedSheet];
     const jsonData = XLSX.utils.sheet_to_json(sheet);
-    
+
     return {
       success: true,
       data: jsonData,
@@ -187,63 +188,58 @@ exports.handler = async (event) => {
 
     // ===== UPLOAD ROUTES (PUBLIC - NO AUTH) =====
     if (method === 'POST' && path.includes('/upload/info')) {
-      // Parse multipart form data
-      let fileBuffer;
       try {
-        // Lambda receives base64-encoded body with multipart form data
-        const buffer = Buffer.from(event.body, event.isBase64Encoded ? 'base64' : 'utf8');
-        fileBuffer = buffer;
+        const parsed = await parser.parse(event);
+
+        const file = parsed.files[0];
+
+        const result = getExcelSheets(file.content);
+
+        return {
+          statusCode: result.success ? 200 : 400,
+          headers: buildHeaders(),
+          body: JSON.stringify(result),
+        };
       } catch (err) {
         return {
           statusCode: 400,
           headers: buildHeaders(),
           body: JSON.stringify({
             success: false,
-            error: 'Failed to parse file',
+            error: err.message,
           }),
         };
       }
-
-      const result = getExcelSheets(fileBuffer);
-      return {
-        statusCode: result.success ? 200 : 400,
-        headers: buildHeaders(),
-        body: JSON.stringify(result),
-      };
     }
 
     if (method === 'POST' && path.includes('/upload') && !path.includes('/upload/info')) {
-      let fileBuffer;
-      let sheetName = null;
-
       try {
-        // Parse multipart form data
-        const buffer = Buffer.from(event.body, event.isBase64Encoded ? 'base64' : 'utf8');
-        
-        // Extract sheetName from form data if provided
-        const sheetMatch = buffer.toString('utf8').match(/name="sheetName"\r?\n\r?\n([^\r\n]+)/);
-        if (sheetMatch) {
-          sheetName = sheetMatch[1];
-        }
+        const parsed = await parser.parse(event);
 
-        fileBuffer = buffer;
+        const file = parsed.files[0];
+
+        const sheetName = parsed.sheetName || null;
+
+        const result = parseExcelFile(
+          file.content,
+          sheetName
+        );
+
+        return {
+          statusCode: result.success ? 200 : 400,
+          headers: buildHeaders(),
+          body: JSON.stringify(result),
+        };
       } catch (err) {
         return {
           statusCode: 400,
           headers: buildHeaders(),
           body: JSON.stringify({
             success: false,
-            error: 'Failed to parse file',
+            error: err.message,
           }),
         };
       }
-
-      const result = parseExcelFile(fileBuffer, sheetName);
-      return {
-        statusCode: result.success ? 200 : 400,
-        headers: buildHeaders(),
-        body: JSON.stringify(result),
-      };
     }
 
     // ===== PROTECTED ROUTES (REQUIRE AUTH) =====
