@@ -9,6 +9,7 @@ const {
 
 const TABLE = process.env.DYNAMO_TABLE_NAME || 'Repairs';
 
+
 async function saveRepairsToDatabase(repairs) {
   let inserted = 0;
   let skipped = 0;
@@ -45,10 +46,12 @@ async function saveRepairsToDatabase(repairs) {
 
       inserted++;
     } catch (err) {
+
       if (err && err.name === 'ConditionalCheckFailedException') {
         skipped++;
         continue;
       }
+
       errors.push(err.message || String(err));
     }
   }

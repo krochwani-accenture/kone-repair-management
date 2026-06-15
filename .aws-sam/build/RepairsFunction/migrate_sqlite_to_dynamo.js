@@ -19,7 +19,6 @@ async function ensureRepairsTableExists() {
         })
       );
       await waitUntilTableExists({ client: ddb }, { TableName: TABLE, maxWaitTime: 120 });
-      
     } else {
       throw error;
     }
@@ -76,9 +75,11 @@ async function batchWrite(items) {
     await ensureRepairsTableExists();
     const rows = await extractRepairsFromSqlite();
     if (rows.length === 0) {
+      console.log('No rows found in SQLite repairs table.');
       return;
     }
 
+    console.log(`Migrating ${rows.length} rows from SQLite to DynamoDB table ${TABLE}`);
     const chunks = [];
     for (let i = 0; i < rows.length; i += 25) {
       chunks.push(rows.slice(i, i + 25));
@@ -86,8 +87,10 @@ async function batchWrite(items) {
 
     for (const chunk of chunks) {
       await batchWrite(chunk);
+      console.log(`Migrated ${chunk.length} items...`);
     }
 
+    console.log('Migration complete.');
   } catch (error) {
     if (error && error.name === 'ResourceNotFoundException') {
       console.error(`Migration failed: DynamoDB table "${TABLE}" not found.`);

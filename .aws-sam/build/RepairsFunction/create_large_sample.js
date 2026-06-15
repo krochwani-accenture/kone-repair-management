@@ -60,4 +60,4 @@ const equipmentSheet = XLSX.utils.json_to_sheet(equipmentData);
 XLSX.utils.book_append_sheet(wb, equipmentSheet, 'Equipment Reference');
 
 // Save file
-XLSX.writeFile(wb, '/tmp/kone_repair_catalog_2500.xlsx');
+XLSX.writeFile(wb, 'backend/kone_repair_catalog_2500.xlsx');

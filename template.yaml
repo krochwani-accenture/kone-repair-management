@@ -6,7 +6,7 @@ Resources:
   RepairsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: Repairs
+      TableName: !Sub "${AWS::StackName}-Repairs"
       AttributeDefinitions:
         - AttributeName: repair_id
           AttributeType: S
@@ -18,9 +18,9 @@ Resources:
   RepairsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: backend/lambda/repairsHandler.handler
+      Handler: lambda/repairsHandler.handler
       Runtime: nodejs18.x
-      CodeUri: .
+      CodeUri: backend/ 
       MemorySize: 256
       Timeout: 30
       Environment:

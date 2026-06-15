@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const { initializeDatabase } = require('./db');
 const repairsRouter = require('./routes/repairs');
+const { loginHandler, authMiddleware } = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,6 +18,7 @@ let dbReady = false;
 (async () => {
   await initializeDatabase();
   dbReady = true;
+  console.log('[Server] Database ready');
 })();
 
 // Middleware
@@ -56,23 +58,40 @@ const getExcelSheets = (fileBuffer) => {
 const parseExcelFile = (fileBuffer, sheetName = null) => {
   try {
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-    
-    // Use specified sheet or default to first sheet
-    const selectedSheet = sheetName && workbook.SheetNames.includes(sheetName) 
-      ? sheetName 
-      : workbook.SheetNames[0];
-    
-    const sheet = workbook.Sheets[selectedSheet];
-    
-    // Convert sheet to JSON
-    const jsonData = XLSX.utils.sheet_to_json(sheet);
-    
+
+    // If a sheetName is provided and exists, return that single sheet (backwards compatible)
+    if (sheetName && workbook.SheetNames.includes(sheetName)) {
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+      return {
+        success: true,
+        data: jsonData,
+        rowCount: jsonData.length,
+        columns: jsonData.length > 0 ? Object.keys(jsonData[0]) : [],
+        sheetName: sheetName,
+        availableSheets: workbook.SheetNames
+      };
+    }
+
+    // Otherwise, parse all sheets and return them as a map
+    const sheetsResult = {};
+    let totalRows = 0;
+
+    workbook.SheetNames.forEach((name) => {
+      const sheet = workbook.Sheets[name];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+      sheetsResult[name] = {
+        data: jsonData,
+        rowCount: jsonData.length,
+        columns: jsonData.length > 0 ? Object.keys(jsonData[0]) : []
+      };
+      totalRows += jsonData.length;
+    });
+
     return {
       success: true,
-      data: jsonData,
-      rowCount: jsonData.length,
-      columns: jsonData.length > 0 ? Object.keys(jsonData[0]) : [],
-      sheetName: selectedSheet,
+      sheets: sheetsResult,
+      totalRowCount: totalRows,
       availableSheets: workbook.SheetNames
     };
   } catch (error) {
@@ -114,8 +133,11 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   res.json(result);
 });
 
-// Database routes
-app.use('/api/repairs', repairsRouter);
+// Auth routes (public)
+app.post('/api/auth/login', loginHandler);
+
+// Database routes (protected)
+app.use('/api/repairs', authMiddleware, repairsRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

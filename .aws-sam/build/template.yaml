@@ -5,7 +5,8 @@ Resources:
   RepairsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: Repairs
+      TableName:
+        Fn::Sub: ${AWS::StackName}-Repairs
       AttributeDefinitions:
       - AttributeName: repair_id
         AttributeType: S
@@ -16,11 +17,11 @@ Resources:
   RepairsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: backend/lambda/repairsHandler.handler
+      Handler: lambda/repairsHandler.handler
       Runtime: nodejs18.x
       CodeUri: RepairsFunction
       MemorySize: 256
-      Timeout: 15
+      Timeout: 30
       Environment:
         Variables:
           DYNAMO_TABLE_NAME:
@@ -31,7 +32,22 @@ Resources:
           TableName:
             Ref: RepairsTable
       Events:
-        Api:
+        ApiAuth:
+          Type: Api
+          Properties:
+            Path: /auth/{proxy+}
+            Method: ANY
+        ApiUploadInfo:
+          Type: Api
+          Properties:
+            Path: /upload/info
+            Method: POST
+        ApiUpload:
+          Type: Api
+          Properties:
+            Path: /upload
+            Method: POST
+        ApiRepairs:
           Type: Api
           Properties:
             Path: /repairs/{proxy+}
@@ -40,6 +56,14 @@ Resources:
       SamResourceId: RepairsFunction
 Outputs:
   RepairsApi:
-    Description: Repairs API endpoint
+    Description: Repairs API Gateway endpoint
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
+  RepairsApiAuthLogin:
+    Description: Auth login endpoint
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/auth/login
+  RepairsApiRepairs:
+    Description: Repairs endpoint
     Value:
       Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/repairs

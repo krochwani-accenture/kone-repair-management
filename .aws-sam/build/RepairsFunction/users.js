@@ -1,8 +1,8 @@
-// backend/users.js
+// Demo users with regions
 module.exports = [
   {
     username: 'admin',
-    password: 'demo123', // demo only
+    password: 'demo123',
     role: 'global',
     regions: ['ALL'],
   },
@@ -17,5 +17,11 @@ module.exports = [
     password: 'demo123',
     role: 'region',
     regions: ['APAC'],
+  },
+  {
+    username: 'americas_user',
+    password: 'demo123',
+    role: 'region',
+    regions: ['AMERICAS'],
   },
 ];
