@@ -237,6 +237,26 @@ exports.handler = async (event) => {
 
         const sheetName = parsed.sheetName || null;
 
+        console.log("===== FILE DEBUG =====");
+        console.log("Filename:", file.filename);
+        console.log("ContentType:", file.contentType);
+        console.log("typeof content:", typeof file.content);
+        console.log("IsBuffer:", Buffer.isBuffer(file.content));
+
+        const testBuffer = Buffer.isBuffer(file.content)
+          ? file.content
+          : Buffer.from(file.content);
+
+        console.log(
+          "First 20 bytes hex:",
+          testBuffer.slice(0, 20).toString("hex")
+        );
+
+        console.log(
+          "First 20 chars:",
+          testBuffer.slice(0, 20).toString()
+        );
+
         const result = parseExcelFile(
           fileBuffer,
           sheetName
@@ -249,7 +269,7 @@ exports.handler = async (event) => {
           headers: buildHeaders(),
           body: JSON.stringify(result),
         };
-        
+
       } catch (err) {
         return {
           statusCode: 400,
