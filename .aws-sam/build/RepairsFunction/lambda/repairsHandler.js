@@ -193,7 +193,11 @@ exports.handler = async (event) => {
 
         const file = parsed.files[0];
 
-        const result = getExcelSheets(file.content);
+        const fileBuffer = Buffer.isBuffer(file.content)
+          ? file.content
+          : Buffer.from(file.content, "base64");
+
+        const result = getExcelSheets(fileBuffer);
 
         return {
           statusCode: result.success ? 200 : 400,
@@ -216,53 +220,21 @@ exports.handler = async (event) => {
       try {
         const parsed = await parser.parse(event);
 
-        console.log("===== MULTIPART DEBUG =====");
-        console.log("Files found:", parsed.files?.length);
-
         const file = parsed.files[0];
-
-        console.log("Filename:", file.filename);
-        console.log("ContentType:", file.contentType);
-        console.log("typeof content:", typeof file.content);
-        console.log("IsBuffer:", Buffer.isBuffer(file.content));
 
         const fileBuffer = Buffer.isBuffer(file.content)
           ? file.content
-          : Buffer.from(file.content);
+          : Buffer.from(file.content, "base64");
 
-        console.log(
-          "First 20 bytes:",
-          fileBuffer.slice(0, 20).toString("hex")
-        );
 
         const sheetName = parsed.sheetName || null;
 
-        console.log("===== FILE DEBUG =====");
-        console.log("Filename:", file.filename);
-        console.log("ContentType:", file.contentType);
-        console.log("typeof content:", typeof file.content);
-        console.log("IsBuffer:", Buffer.isBuffer(file.content));
-
-        const testBuffer = Buffer.isBuffer(file.content)
-          ? file.content
-          : Buffer.from(file.content);
-
-        console.log(
-          "First 20 bytes hex:",
-          testBuffer.slice(0, 20).toString("hex")
-        );
-
-        console.log(
-          "First 20 chars:",
-          testBuffer.slice(0, 20).toString()
-        );
 
         const result = parseExcelFile(
           fileBuffer,
           sheetName
         );
 
-        console.log("Parse Result:", result);
 
         return {
           statusCode: result.success ? 200 : 400,
