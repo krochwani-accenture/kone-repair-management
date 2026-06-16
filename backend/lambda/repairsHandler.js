@@ -134,7 +134,7 @@ function parseMultipartEvent(event) {
   return new Promise((resolve, reject) => {
     const contentTypeHeader =
       event.headers?.['content-type'] || event.headers?.['Content-Type'] || '';
-    const busboy = new Busboy({ headers: { 'content-type': contentTypeHeader } });
+    const busboy = Busboy({ headers: { 'content-type': contentTypeHeader } });
     const result = { files: [] };
 
     busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
