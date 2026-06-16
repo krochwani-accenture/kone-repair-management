@@ -86,18 +86,29 @@ function parseExcelFile(fileBuffer, sheetName = null) {
       throw new Error('Invalid file buffer: empty or not a buffer');
     }
 
+    console.log('[v0] Buffer validation passed. Size:', fileBuffer.length, 'bytes');
+
     // Check for valid Excel file signature (ZIP header)
     const header = fileBuffer.slice(0, 4).toString('hex');
+    console.log('[v0] ZIP header check:', header);
     if (header !== '504b0304') {
       throw new Error(`Invalid Excel file format. Expected ZIP header, got: ${header}`);
     }
 
+    console.log('[v0] About to call XLSX.read()');
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    console.log('[v0] XLSX.read() succeeded. Sheet names:', workbook.SheetNames);
+
     const selectedSheet = sheetName && workbook.SheetNames.includes(sheetName)
       ? sheetName
       : workbook.SheetNames[0];
+    console.log('[v0] Selected sheet:', selectedSheet);
+
     const sheet = workbook.Sheets[selectedSheet];
+    console.log('[v0] Sheet retrieved');
+
     const jsonData = XLSX.utils.sheet_to_json(sheet);
+    console.log('[v0] JSON conversion succeeded. Row count:', jsonData.length);
 
     return {
       success: true,
@@ -108,11 +119,14 @@ function parseExcelFile(fileBuffer, sheetName = null) {
       availableSheets: workbook.SheetNames,
     };
   } catch (error) {
-    console.error("XLSX ERROR:", error);
+    console.error("[v0] XLSX ERROR:", error.message);
+    console.error("[v0] Error stack:", error.stack);
+    console.error("[v0] Error name:", error.name);
 
     return {
       success: false,
       error: error.message,
+      errorName: error.name,
       stack: error.stack
     };
   }
