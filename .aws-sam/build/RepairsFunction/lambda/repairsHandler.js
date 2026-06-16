@@ -8,9 +8,9 @@ const {
 const jwt = require('jsonwebtoken');
 const users = require('../users');
 const XLSX = require('xlsx');
+const Busboy = require('busboy');
 
 const SECRET = process.env.JWT_SECRET || 'demo-secret-key';
-const parser = require('lambda-multipart-parser');
 
 /**
  * Create JWT token for user
@@ -130,6 +130,60 @@ function normalizeFileContent(content) {
   return Buffer.from(content, 'binary');
 }
 
+function parseMultipartEvent(event) {
+  return new Promise((resolve, reject) => {
+    const contentTypeHeader =
+      event.headers?.['content-type'] || event.headers?.['Content-Type'] || '';
+    const busboy = new Busboy({ headers: { 'content-type': contentTypeHeader } });
+    const result = { files: [] };
+
+    busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
+      const buffers = [];
+      file.on('data', data => buffers.push(data));
+      file.on('end', () => {
+        if (buffers.length > 0) {
+          result.files.push({
+            filename,
+            content: Buffer.concat(buffers),
+            contentType: mimetype,
+            encoding,
+            fieldname,
+          });
+        }
+      });
+    });
+
+    busboy.on('field', (fieldname, value) => {
+      result[fieldname] = value;
+    });
+
+    busboy.on('error', reject);
+    busboy.on('finish', () => resolve(result));
+
+    let bodyBuffer;
+    if (Buffer.isBuffer(event.body)) {
+      bodyBuffer = event.body;
+    } else if (typeof event.body === 'string') {
+      bodyBuffer = event.isBase64Encoded
+        ? Buffer.from(event.body, 'base64')
+        : Buffer.from(event.body, 'binary');
+
+      if (!event.isBase64Encoded) {
+        const altBuffer = Buffer.from(event.body, 'base64');
+        const header = altBuffer.slice(0, 4).toString('hex');
+        if (header === '504b0304' || header === 'd0cf11e0' || header === 'ffd8ffe0') {
+          bodyBuffer = altBuffer;
+          console.log('Multipart event body decoded as base64 fallback');
+        }
+      }
+    } else {
+      bodyBuffer = Buffer.from('');
+    }
+
+    busboy.end(bodyBuffer);
+  });
+}
+
 function getExcelSheets(fileBuffer) {
   try {
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
@@ -212,7 +266,7 @@ exports.handler = async (event) => {
     // ===== UPLOAD ROUTES (PUBLIC - NO AUTH) =====
     if (method === 'POST' && path.includes('/upload/info')) {
       try {
-        const parsed = await parser.parse(event);
+        const parsed = await parseMultipartEvent(event);
         if (!parsed.files || parsed.files.length === 0) {
           throw new Error('No file found in upload request');
         }
@@ -240,7 +294,7 @@ exports.handler = async (event) => {
 
     if (method === 'POST' && path.includes('/upload') && !path.includes('/upload/info')) {
       try {
-        const parsed = await parser.parse(event);
+        const parsed = await parseMultipartEvent(event);
 
         console.log("===== MULTIPART DEBUG =====");
         console.log("Files found:", parsed.files?.length);
