@@ -139,24 +139,20 @@ export default function Page() {
       });
 
       const { uploadUrl, objectKey } = response.data;
-      await fetch(uploadUrl, { method: 'PUT', body: file });
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const previewResponse = await axios.post(`${API_URL}/upload`, formData, {
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': file.type || 'application/octet-stream',
         },
       });
 
-      if (!previewResponse.data.success) {
-        throw new Error(previewResponse.data.error || 'Failed to parse uploaded file');
+      if (!uploadResponse.ok) {
+        throw new Error('S3 upload failed');
       }
 
-      setUploadedData(previewResponse.data);
       setUploadObjectKey(objectKey);
-      setSuccess('File uploaded successfully. Preview is ready.');
+      setSuccess('File uploaded successfully. It will be processed from S3.');
       setFile(null);
       setFileName('');
     } catch (err: any) {
@@ -541,7 +537,7 @@ export default function Page() {
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                   <CircularProgress />
                 </Box>
-              ) : dbData && dbData.success && dbData.data.length > 0 ? (
+              ) : dbData && dbData.success && Array.isArray(dbData.data) && dbData.data.length > 0 ? (
                 renderDataTable(dbData.data, Object.keys(dbData.data[0]), 'Database Records')
               ) : dbData && dbData.success ? (
                 <Alert severity="info">No records found in database</Alert>
