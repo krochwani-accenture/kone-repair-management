@@ -222,9 +222,21 @@ exports.handler = async (event) => {
 
         const file = parsed.files[0];
 
+        console.log("===== FILE DEBUG =====");
+        console.log("Filename:", file.filename);
+        console.log("ContentType:", file.contentType);
+        console.log("typeof content:", typeof file.content);
+        console.log("IsBuffer:", Buffer.isBuffer(file.content));
+
         const fileBuffer = Buffer.isBuffer(file.content)
           ? file.content
           : Buffer.from(file.content, "base64");
+
+        console.log("Buffer length:", fileBuffer.length);
+        console.log(
+          "First 20 bytes:",
+          fileBuffer.slice(0, 20).toString("hex")
+        );
 
 
         const sheetName = parsed.sheetName || null;
