@@ -110,6 +110,26 @@ function parseExcelFile(fileBuffer, sheetName = null) {
 /**
  * Get sheet names from Excel file
  */
+function normalizeFileContent(content) {
+  if (Buffer.isBuffer(content)) {
+    return content;
+  }
+  if (typeof content !== 'string') {
+    return Buffer.from(content);
+  }
+
+  const base64Regex = /^[A-Za-z0-9+/=\r\n]+$/;
+  if (base64Regex.test(content)) {
+    const base64Buffer = Buffer.from(content, 'base64');
+    const header = base64Buffer.slice(0, 4).toString('hex');
+    if (header === '504b0304' || header === 'd0cf11e0' || header === 'ffd8ffe0') {
+      return base64Buffer;
+    }
+  }
+
+  return Buffer.from(content, 'binary');
+}
+
 function getExcelSheets(fileBuffer) {
   try {
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
@@ -193,10 +213,13 @@ exports.handler = async (event) => {
     if (method === 'POST' && path.includes('/upload/info')) {
       try {
         const parsed = await parser.parse(event);
+        if (!parsed.files || parsed.files.length === 0) {
+          throw new Error('No file found in upload request');
+        }
 
         const file = parsed.files[0];
-
-        const result = getExcelSheets(file.content);
+        const fileBuffer = normalizeFileContent(file.content);
+        const result = getExcelSheets(fileBuffer);
 
         return {
           statusCode: result.success ? 200 : 400,
@@ -224,46 +247,16 @@ exports.handler = async (event) => {
 
         const file = parsed.files[0];
 
+        const fileBuffer = normalizeFileContent(file.content);
+
         console.log("Filename:", file.filename);
         console.log("ContentType:", file.contentType);
         console.log("typeof content:", typeof file.content);
         console.log("IsBuffer:", Buffer.isBuffer(file.content));
-
-        const fileBuffer = Buffer.isBuffer(file.content)
-          ? file.content
-          : Buffer.from(file.content);
-
-        console.log(
-          "First 20 bytes:",
-          fileBuffer.slice(0, 20).toString("hex")
-        );
+        console.log("First 20 bytes:", fileBuffer.slice(0, 20).toString("hex"));
 
         const sheetName = parsed.sheetName || null;
-
-        console.log("===== FILE DEBUG =====");
-        console.log("Filename:", file.filename);
-        console.log("ContentType:", file.contentType);
-        console.log("typeof content:", typeof file.content);
-        console.log("IsBuffer:", Buffer.isBuffer(file.content));
-
-        const testBuffer = Buffer.isBuffer(file.content)
-          ? file.content
-          : Buffer.from(file.content);
-
-        console.log(
-          "First 20 bytes hex:",
-          testBuffer.slice(0, 20).toString("hex")
-        );
-
-        console.log(
-          "First 20 chars:",
-          testBuffer.slice(0, 20).toString()
-        );
-
-        const result = parseExcelFile(
-          fileBuffer,
-          sheetName
-        );
+        const result = parseExcelFile(fileBuffer, sheetName);
 
         console.log("Parse Result:", result);
 
