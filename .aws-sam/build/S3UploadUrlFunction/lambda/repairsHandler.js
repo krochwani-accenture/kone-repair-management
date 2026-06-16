@@ -132,83 +132,6 @@ function parseExcelFile(fileBuffer, sheetName = null) {
   }
 }
 
-/**
- * Normalize file content - preserve binary data integrity
- */
-function normalizeFileContent(content) {
-  // If already a buffer, return as-is
-  if (Buffer.isBuffer(content)) {
-    return content;
-  }
-
-  // If it's a string, try to decode as base64 only if it's valid base64
-  if (typeof content === 'string') {
-    try {
-      // Only attempt base64 decode if string length is multiple of 4 and contains only base64 chars
-      if (content.length % 4 === 0 && /^[A-Za-z0-9+/=]+$/.test(content.trim())) {
-        return Buffer.from(content.trim(), 'base64');
-      }
-    } catch (err) {
-      // If base64 decode fails, fall through to utf8
-    }
-    // Default to utf8 for strings
-    return Buffer.from(content, 'utf8');
-  }
-
-  // For other types, convert to buffer
-  return Buffer.from(content);
-}
-
-function parseMultipartEvent(event) {
-  return new Promise((resolve, reject) => {
-    const contentTypeHeader =
-      event.headers?.['content-type'] || event.headers?.['Content-Type'] || '';
-    const busboy = Busboy({ headers: { 'content-type': contentTypeHeader } });
-    const result = { files: [] };
-
-    busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
-      const buffers = [];
-      file.on('data', data => buffers.push(data));
-      file.on('end', () => {
-        if (buffers.length > 0) {
-          result.files.push({
-            filename,
-            content: Buffer.concat(buffers),
-            contentType: mimetype,
-            encoding,
-            fieldname,
-          });
-        }
-      });
-    });
-
-    busboy.on('field', (fieldname, value) => {
-      result[fieldname] = value;
-    });
-
-    busboy.on('error', reject);
-    busboy.on('finish', () => resolve(result));
-
-    // Convert body to buffer - handle all cases
-    let bodyBuffer;
-    if (Buffer.isBuffer(event.body)) {
-      bodyBuffer = event.body;
-    } else if (typeof event.body === 'string') {
-      // If isBase64Encoded is true, decode from base64
-      if (event.isBase64Encoded) {
-        bodyBuffer = Buffer.from(event.body, 'base64');
-      } else {
-        // Otherwise treat as string and convert to buffer
-        bodyBuffer = Buffer.from(event.body, 'utf8');
-      }
-    } else {
-      bodyBuffer = Buffer.from('');
-    }
-
-    console.log('Multipart body buffer size:', bodyBuffer.length, 'bytes');
-    busboy.end(bodyBuffer);
-  });
-}
 
 function getExcelSheets(fileBuffer) {
   try {
@@ -292,13 +215,13 @@ exports.handler = async (event) => {
     // ===== UPLOAD ROUTES (PUBLIC - NO AUTH) =====
     if (method === 'POST' && path.includes('/upload/info')) {
       try {
-        const parsed = await parseMultipartEvent(event);
+        const parsed = await event;
         if (!parsed.files || parsed.files.length === 0) {
           throw new Error('No file found in upload request');
         }
 
         const file = parsed.files[0];
-        const fileBuffer = normalizeFileContent(file.content);
+        const fileBuffer = file.content;
         const result = getExcelSheets(fileBuffer);
 
         return {
@@ -320,14 +243,14 @@ exports.handler = async (event) => {
 
     if (method === 'POST' && path.includes('/upload') && !path.includes('/upload/info')) {
       try {
-        const parsed = await parseMultipartEvent(event);
+        const parsed = await event;
 
         console.log("===== MULTIPART DEBUG =====");
         console.log("Files found:", parsed.files?.length);
 
         const file = parsed.files[0];
 
-        const fileBuffer = normalizeFileContent(file.content);
+        const fileBuffer = file.content;
 
         console.log("Filename:", file.filename);
         console.log("ContentType:", file.contentType);
