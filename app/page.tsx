@@ -36,7 +36,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import axios from 'axios';
 import { useAuth } from './hooks/useAuth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:5000/api');
 const REPAIRS_API_URL = process.env.NEXT_PUBLIC_REPAIRS_API_URL || API_URL;
 
 interface TabPanelProps {
