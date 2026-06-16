@@ -130,6 +130,7 @@ export default function Page() {
     setError(null);
     setSuccess(null);
     setUploadObjectKey(null);
+    setUploadedData(null);
 
     try {
       const response = await axios.get(`${API_URL}/upload/url`, {
@@ -140,8 +141,22 @@ export default function Page() {
       const { uploadUrl, objectKey } = response.data;
       await fetch(uploadUrl, { method: 'PUT', body: file });
 
-      setSuccess('File uploaded successfully. Processing will start automatically.');
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const previewResponse = await axios.post(`${API_URL}/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (!previewResponse.data.success) {
+        throw new Error(previewResponse.data.error || 'Failed to parse uploaded file');
+      }
+
+      setUploadedData(previewResponse.data);
       setUploadObjectKey(objectKey);
+      setSuccess('File uploaded successfully. Preview is ready.');
       setFile(null);
       setFileName('');
     } catch (err: any) {
@@ -428,7 +443,7 @@ export default function Page() {
                 </Card>
               )}
 
-              {uploadedData && uploadedData.success && uploadedData.data && (
+              {uploadedData && uploadedData.success && (uploadedData.data || uploadedData.sheets) && (
                 <Card elevation={2}>
                   <CardContent>
                     <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
@@ -490,7 +505,7 @@ export default function Page() {
                         });
 
                         const mergedColumns = Array.from(columnsSet);
-                        return renderDataTable(mergedData, mergedColumns, 'Excel Data Preview (All Sheets)');
+                        return renderDataTable(mergedData, mergedColumns, 'Excel Data Preview');
                       }
 
                       return renderDataTable(
