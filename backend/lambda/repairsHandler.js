@@ -77,10 +77,21 @@ function buildHeaders() {
 }
 
 /**
- * Parse Excel file from base64 body
+ * Parse Excel file from buffer
  */
 function parseExcelFile(fileBuffer, sheetName = null) {
   try {
+    // Validate buffer
+    if (!Buffer.isBuffer(fileBuffer) || fileBuffer.length === 0) {
+      throw new Error('Invalid file buffer: empty or not a buffer');
+    }
+
+    // Check for valid Excel file signature (ZIP header)
+    const header = fileBuffer.slice(0, 4).toString('hex');
+    if (header !== '504b0304') {
+      throw new Error(`Invalid Excel file format. Expected ZIP header, got: ${header}`);
+    }
+
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
     const selectedSheet = sheetName && workbook.SheetNames.includes(sheetName)
       ? sheetName
@@ -108,26 +119,30 @@ function parseExcelFile(fileBuffer, sheetName = null) {
 }
 
 /**
- * Get sheet names from Excel file
+ * Normalize file content - preserve binary data integrity
  */
 function normalizeFileContent(content) {
+  // If already a buffer, return as-is
   if (Buffer.isBuffer(content)) {
     return content;
   }
-  if (typeof content !== 'string') {
-    return Buffer.from(content);
-  }
 
-  const base64Regex = /^[A-Za-z0-9+/=\r\n]+$/;
-  if (base64Regex.test(content)) {
-    const base64Buffer = Buffer.from(content, 'base64');
-    const header = base64Buffer.slice(0, 4).toString('hex');
-    if (header === '504b0304' || header === 'd0cf11e0' || header === 'ffd8ffe0') {
-      return base64Buffer;
+  // If it's a string, try to decode as base64 only if it's valid base64
+  if (typeof content === 'string') {
+    try {
+      // Only attempt base64 decode if string length is multiple of 4 and contains only base64 chars
+      if (content.length % 4 === 0 && /^[A-Za-z0-9+/=]+$/.test(content.trim())) {
+        return Buffer.from(content.trim(), 'base64');
+      }
+    } catch (err) {
+      // If base64 decode fails, fall through to utf8
     }
+    // Default to utf8 for strings
+    return Buffer.from(content, 'utf8');
   }
 
-  return Buffer.from(content, 'binary');
+  // For other types, convert to buffer
+  return Buffer.from(content);
 }
 
 function parseMultipartEvent(event) {
@@ -160,26 +175,23 @@ function parseMultipartEvent(event) {
     busboy.on('error', reject);
     busboy.on('finish', () => resolve(result));
 
+    // Convert body to buffer - handle all cases
     let bodyBuffer;
     if (Buffer.isBuffer(event.body)) {
       bodyBuffer = event.body;
     } else if (typeof event.body === 'string') {
-      bodyBuffer = event.isBase64Encoded
-        ? Buffer.from(event.body, 'base64')
-        : Buffer.from(event.body, 'binary');
-
-      if (!event.isBase64Encoded) {
-        const altBuffer = Buffer.from(event.body, 'base64');
-        const header = altBuffer.slice(0, 4).toString('hex');
-        if (header === '504b0304' || header === 'd0cf11e0' || header === 'ffd8ffe0') {
-          bodyBuffer = altBuffer;
-          console.log('Multipart event body decoded as base64 fallback');
-        }
+      // If isBase64Encoded is true, decode from base64
+      if (event.isBase64Encoded) {
+        bodyBuffer = Buffer.from(event.body, 'base64');
+      } else {
+        // Otherwise treat as string and convert to buffer
+        bodyBuffer = Buffer.from(event.body, 'utf8');
       }
     } else {
       bodyBuffer = Buffer.from('');
     }
 
+    console.log('Multipart body buffer size:', bodyBuffer.length, 'bytes');
     busboy.end(bodyBuffer);
   });
 }

@@ -132,11 +132,7 @@ export default function Page() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post(`${API_URL}/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await axios.post(`${API_URL}/upload`, formData);
 
       setUploadedData(response.data);
       setFile(null);
