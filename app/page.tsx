@@ -34,6 +34,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import LogoutIcon from '@mui/icons-material/Logout';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import { useAuth } from './hooks/useAuth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ||
@@ -120,6 +121,47 @@ export default function Page() {
     }
   };
 
+  const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result instanceof ArrayBuffer) {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Failed to read file')); 
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const parseExcelSheets = (fileBuffer: ArrayBuffer) => {
+    const workbook = XLSX.read(fileBuffer, { type: 'array' });
+    const availableSheets = workbook.SheetNames;
+    const sheets: Record<string, { data: any[]; rowCount: number; columns: string[] }> = {};
+    let totalRowCount = 0;
+
+    availableSheets.forEach((name) => {
+      const sheet = workbook.Sheets[name];
+      const data = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      const columns = data.length > 0 ? Object.keys(data[0]) : [];
+      sheets[name] = {
+        data,
+        rowCount: data.length,
+        columns,
+      };
+      totalRowCount += data.length;
+    });
+
+    return {
+      success: true,
+      sheets,
+      totalRowCount,
+      availableSheets,
+    };
+  };
+
   const handleUpload = async () => {
     if (!file) {
       setError('Please select a file first');
@@ -133,6 +175,10 @@ export default function Page() {
     setUploadedData(null);
 
     try {
+      const fileBuffer = await readFileAsArrayBuffer(file);
+      const parsed = parseExcelSheets(fileBuffer);
+      setUploadedData(parsed);
+
       const response = await axios.get(`${API_URL}/upload/url`, {
         params: { filename: file.name },
         headers: auth.getAuthHeader(),
@@ -152,7 +198,7 @@ export default function Page() {
       }
 
       setUploadObjectKey(objectKey);
-      setSuccess('File uploaded successfully. It will be processed from S3.');
+      setSuccess('File uploaded successfully. Preview is ready.');
       setFile(null);
       setFileName('');
     } catch (err: any) {
