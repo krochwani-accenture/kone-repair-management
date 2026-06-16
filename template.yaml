@@ -1,7 +1,13 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: SAM template for Repairs Lambda and DynamoDB table
 
+Globals:
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization'"
+      AllowOrigin: "'*'"
 Resources:
   RepairsTable:
     Type: AWS::DynamoDB::Table
@@ -21,9 +27,9 @@ Resources:
       BucketName: !Sub "${AWS::StackName}-repair-uploads"
       CorsConfiguration:
         CorsRules:
-          - AllowedOrigins: ['*']
-            AllowedMethods: ['GET', 'PUT', 'POST', 'HEAD']
-            AllowedHeaders: ['*']
+          - AllowedOrigins: ["*"]
+            AllowedMethods: ["GET", "PUT", "POST", "HEAD"]
+            AllowedHeaders: ["*"]
             MaxAge: 3000
 
   RepairsFunction:
@@ -31,13 +37,13 @@ Resources:
     Properties:
       Handler: lambda/repairsHandler.handler
       Runtime: nodejs18.x
-      CodeUri: backend/ 
+      CodeUri: backend/
       MemorySize: 256
       Timeout: 30
       Environment:
         Variables:
           DYNAMO_TABLE_NAME: !Ref RepairsTable
-          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref RepairsTable
@@ -74,9 +80,9 @@ Resources:
       Environment:
         Variables:
           UPLOAD_BUCKET_NAME: !Sub "${AWS::StackName}-repair-uploads"
-          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
       Policies:
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
@@ -101,11 +107,11 @@ Resources:
         Variables:
           UPLOAD_BUCKET_NAME: !Sub "${AWS::StackName}-repair-uploads"
           DYNAMO_TABLE_NAME: !Ref RepairsTable
-          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref RepairsTable
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
