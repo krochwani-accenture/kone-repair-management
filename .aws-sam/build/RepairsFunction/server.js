@@ -3,6 +3,8 @@ const cors = require('cors');
 const multer = require('multer');
 const XLSX = require('xlsx');
 const path = require('path');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 require('dotenv').config();
 
 const { initializeDatabase } = require('./db');
@@ -11,6 +13,9 @@ const { loginHandler, authMiddleware } = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const REGION = process.env.AWS_REGION || 'ap-south-2';
+const UPLOAD_BUCKET = process.env.UPLOAD_BUCKET_NAME;
+const s3 = new S3Client({ region: REGION });
 
 // Initialize database asynchronously
 let dbReady = false;
@@ -117,26 +122,38 @@ app.post('/api/upload/info', upload.single('file'), (req, res) => {
   res.json(result);
 });
 
-// Upload endpoint - supports optional sheet selection
+// Upload endpoint - local direct upload and sheet parsing
 app.post('/api/upload', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file provided' });
   }
 
-  const parser = require('lambda-multipart-parser');
+  const sheetName = req.body.sheetName || null;
+  const result = parseExcelFile(req.file.buffer, sheetName);
+  return res.status(result.success ? 200 : 400).json(result);
+});
 
-  const parsed = await parser.parse(event);
+app.get('/api/upload/url', authMiddleware, async (req, res) => {
+  try {
+    const filename = req.query.filename;
+    if (!filename || typeof filename !== 'string') {
+      return res.status(400).json({ success: false, error: 'Filename is required' });
+    }
 
-  const file = parsed.files[0];
+    if (!UPLOAD_BUCKET) {
+      return res.status(500).json({ success: false, error: 'Upload bucket is not configured' });
+    }
 
-  const sheetName = parsed.sheetName || null;
+    const safeFilename = filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const objectKey = `uploads/${Date.now()}_${safeFilename}`;
+    const command = new PutObjectCommand({ Bucket: UPLOAD_BUCKET, Key: objectKey });
+    const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
 
-  const result = parseExcelFile(
-    file.content,
-    sheetName
-  );
-
-  res.json(result);
+    return res.json({ success: true, uploadUrl, objectKey });
+  } catch (error) {
+    console.error('Upload URL error:', error);
+    return res.status(500).json({ success: false, error: error.message || 'Failed to generate upload URL' });
+  }
 });
 
 // Auth routes (public)

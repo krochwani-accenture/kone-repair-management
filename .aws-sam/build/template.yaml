@@ -14,6 +14,23 @@ Resources:
       - AttributeName: repair_id
         KeyType: HASH
       BillingMode: PAY_PER_REQUEST
+  RepairUploadsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: ${AWS::StackName}-repair-uploads
+      CorsConfiguration:
+        CorsRules:
+        - AllowedOrigins:
+          - '*'
+          AllowedMethods:
+          - GET
+          - PUT
+          - POST
+          - HEAD
+          AllowedHeaders:
+          - '*'
+          MaxAge: 3000
   RepairsFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -54,6 +71,75 @@ Resources:
             Method: ANY
     Metadata:
       SamResourceId: RepairsFunction
+  S3UploadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/s3UploadHandler.handler
+      Runtime: nodejs18.x
+      CodeUri: S3UploadUrlFunction
+      MemorySize: 256
+      Timeout: 30
+      Environment:
+        Variables:
+          UPLOAD_BUCKET_NAME:
+            Fn::Sub: ${AWS::StackName}-repair-uploads
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - s3:PutObject
+          Resource:
+            Fn::Sub: arn:aws:s3:::${AWS::StackName}-repair-uploads/uploads/*
+      Events:
+        ApiUploadUrl:
+          Type: Api
+          Properties:
+            Path: /upload/url
+            Method: GET
+    Metadata:
+      SamResourceId: S3UploadUrlFunction
+  RepairProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/s3Processor.handler
+      Runtime: nodejs18.x
+      CodeUri: RepairProcessorFunction
+      MemorySize: 256
+      Timeout: 60
+      Environment:
+        Variables:
+          UPLOAD_BUCKET_NAME:
+            Fn::Sub: ${AWS::StackName}-repair-uploads
+          DYNAMO_TABLE_NAME:
+            Ref: RepairsTable
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: RepairsTable
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - s3:GetObject
+          Resource:
+            Fn::Sub: arn:aws:s3:::${AWS::StackName}-repair-uploads/uploads/*
+      Events:
+        UploadEvent:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: RepairUploadsBucket
+            Events: s3:ObjectCreated:Put
+            Filter:
+              S3Key:
+                Rules:
+                - Name: suffix
+                  Value: .xlsx
+    Metadata:
+      SamResourceId: RepairProcessorFunction
 Outputs:
   RepairsApi:
     Description: Repairs API Gateway endpoint
@@ -67,3 +153,11 @@ Outputs:
     Description: Repairs endpoint
     Value:
       Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/repairs
+  RepairsUploadUrl:
+    Description: S3 upload URL endpoint
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/upload/url
+  RepairUploadsBucketName:
+    Description: S3 bucket for uploaded repair files
+    Value:
+      Ref: RepairUploadsBucket

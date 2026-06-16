@@ -60,6 +60,7 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [uploadedData, setUploadedData] = useState<any>(null);
   const [dbData, setDbData] = useState<any>(null);
+  const [uploadObjectKey, setUploadObjectKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
@@ -126,15 +127,20 @@ export default function Page() {
 
     setLoading(true);
     setError(null);
-    setUploadedData(null);
+    setSuccess(null);
+    setUploadObjectKey(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const response = await axios.get(`${API_URL}/upload/url`, {
+        params: { filename: file.name },
+        headers: auth.getAuthHeader(),
+      });
 
-      const response = await axios.post(`${API_URL}/upload`, formData);
+      const { uploadUrl, objectKey } = response.data;
+      await fetch(uploadUrl, { method: 'PUT', body: file });
 
-      setUploadedData(response.data);
+      setSuccess('File uploaded successfully. Processing will start automatically.');
+      setUploadObjectKey(objectKey);
       setFile(null);
       setFileName('');
     } catch (err: any) {
@@ -404,8 +410,24 @@ export default function Page() {
                 </CardContent>
               </Card>
 
-              {/* Preview Data */}
-              {uploadedData && uploadedData.success && (
+              {/* Upload Result */}
+              {uploadObjectKey && (
+                <Card elevation={2}>
+                  <CardContent>
+                    <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
+                      Upload Complete
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                      File uploaded to S3 and will be processed automatically.
+                    </Typography>
+                    <Typography variant="body2">
+                      Object Key: <strong>{uploadObjectKey}</strong>
+                    </Typography>
+                  </CardContent>
+                </Card>
+              )}
+
+              {uploadedData && uploadedData.success && uploadedData.data && (
                 <Card elevation={2}>
                   <CardContent>
                     <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>

@@ -7,6 +7,6 @@ architecture = "x86_64"
 handler = "lambda/repairsHandler.handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["RepairsFunction"]
+functions = ["RepairsFunction", "S3UploadUrlFunction", "RepairProcessorFunction"]
 
 [layer_build_definitions]
