@@ -1,5 +1,6 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { unmarshall } = require('@aws-sdk/util-dynamodb');
 
 const client = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -22,9 +23,8 @@ exports.handler = async (event) => {
       }
 
       // Extract old and new images
-      const oldImage = dynamodb.OldImage ? 
-        DynamoDBDocumentClient.prototype.unmarshall(dynamodb.OldImage) : null;
-      const newImage = DynamoDBDocumentClient.prototype.unmarshall(dynamodb.NewImage);
+      const oldImage = dynamodb.OldImage ? unmarshall(dynamodb.OldImage) : null;
+      const newImage = unmarshall(dynamodb.NewImage);
 
       // Compute diff
       const diff = computeDiff(oldImage, newImage);
@@ -32,7 +32,7 @@ exports.handler = async (event) => {
       // Build changelog entry
       const changelogEntry = {
         repairId: newImage.repair_id || newImage.id,
-        eventTimestamp: record.dynamodb.ApproximateCreationDateTime,
+        eventTimestamp: String(record.dynamodb.ApproximateCreationDateTime),
         changeType: eventName,
         streamRecordId: eventID,
         oldImage: oldImage || null,
