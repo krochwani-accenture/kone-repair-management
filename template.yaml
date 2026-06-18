@@ -145,7 +145,7 @@ Resources:
       Environment:
         Variables:
           CHANGELOG_TABLE_NAME: !Ref ChangeLogTable
-          APP_REGION: !Ref AWS::Region
+          AWS_REGION: !Ref AWS::Region
       Policies:
       - DynamoDBCrudPolicy:
           TableName: !Ref ChangeLogTable
