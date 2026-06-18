@@ -9,7 +9,7 @@ const CHANGELOG_TABLE = process.env.CHANGELOG_TABLE_NAME || 'RepairsChangeLog';
 exports.handler = async (event) => {
   console.log('Stream event received:', JSON.stringify(event));
 
-  const results = [];
+  const results = [];   
 
   for (const record of event.Records) {
     try {
@@ -32,7 +32,7 @@ exports.handler = async (event) => {
       // Build changelog entry
       const changelogEntry = {
         repairId: newImage.repair_id || newImage.id,
-        eventTimestamp: new Date().toISOString(),
+        eventTimestamp: record.dynamodb.ApproximateCreationDateTime,
         changeType: eventName,
         streamRecordId: eventID,
         oldImage: oldImage || null,
