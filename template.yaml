@@ -133,7 +133,48 @@ Resources:
                 Rules:
                   - Name: suffix
                     Value: .xlsx
+                    
+  StreamProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/streamProcessor.handler
+      Runtime: nodejs18.x
+      CodeUri: backend/
+      MemorySize: 256
+      Timeout: 60
+      Environment:
+        Variables:
+          CHANGELOG_TABLE_NAME: !Ref ChangeLogTable
+          AWS_REGION: !Ref AWS::Region
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref ChangeLogTable
+      Events:
+        DynamoDBStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt RepairsTable.StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 100
 
+ChangeLogTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: !Sub "${AWS::StackName}-RepairsChangeLog"
+    AttributeDefinitions:
+      - AttributeName: repairId
+        AttributeType: S
+      - AttributeName: eventTimestamp
+        AttributeType: S
+    KeySchema:
+      - AttributeName: repairId
+        KeyType: HASH
+      - AttributeName: eventTimestamp
+        KeyType: RANGE
+    BillingMode: PAY_PER_REQUEST
+    TTL:
+      AttributeName: expiresAt
+      Enabled: true
 Outputs:
   RepairsApi:
     Description: "Repairs API Gateway endpoint"
