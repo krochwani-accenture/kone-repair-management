@@ -145,7 +145,7 @@ Resources:
       Environment:
         Variables:
           CHANGELOG_TABLE_NAME: !Ref ChangeLogTable
-          AWS_REGION: !Ref AWS::Region
+          APP_REGION: !Ref AWS::Region
       Policies:
       - DynamoDBCrudPolicy:
           TableName: !Ref ChangeLogTable
@@ -157,24 +157,25 @@ Resources:
             StartingPosition: TRIM_HORIZON
             BatchSize: 100
 
-ChangeLogTable:
-  Type: AWS::DynamoDB::Table
-  Properties:
-    TableName: !Sub "${AWS::StackName}-RepairsChangeLog"
-    AttributeDefinitions:
+  ChangeLogTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-RepairsChangeLog"
+      AttributeDefinitions:
       - AttributeName: repairId
         AttributeType: S
       - AttributeName: eventTimestamp
         AttributeType: S
-    KeySchema:
+      KeySchema:
       - AttributeName: repairId
         KeyType: HASH
       - AttributeName: eventTimestamp
         KeyType: RANGE
-    BillingMode: PAY_PER_REQUEST
-    TTL:
-      AttributeName: expiresAt
-      Enabled: true
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
 Outputs:
   RepairsApi:
     Description: "Repairs API Gateway endpoint"
