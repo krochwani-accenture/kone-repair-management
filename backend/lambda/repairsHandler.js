@@ -86,29 +86,22 @@ function parseExcelFile(fileBuffer, sheetName = null) {
       throw new Error('Invalid file buffer: empty or not a buffer');
     }
 
-    console.log('[v0] Buffer validation passed. Size:', fileBuffer.length, 'bytes');
 
     // Check for valid Excel file signature (ZIP header)
     const header = fileBuffer.slice(0, 4).toString('hex');
-    console.log('[v0] ZIP header check:', header);
     if (header !== '504b0304') {
       throw new Error(`Invalid Excel file format. Expected ZIP header, got: ${header}`);
     }
 
-    console.log('[v0] About to call XLSX.read()');
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-    console.log('[v0] XLSX.read() succeeded. Sheet names:', workbook.SheetNames);
 
     const selectedSheet = sheetName && workbook.SheetNames.includes(sheetName)
       ? sheetName
       : workbook.SheetNames[0];
-    console.log('[v0] Selected sheet:', selectedSheet);
 
     const sheet = workbook.Sheets[selectedSheet];
-    console.log('[v0] Sheet retrieved');
 
     const jsonData = XLSX.utils.sheet_to_json(sheet);
-    console.log('[v0] JSON conversion succeeded. Row count:', jsonData.length);
 
     return {
       success: true,
@@ -153,7 +146,6 @@ function getExcelSheets(fileBuffer) {
  * Main Lambda handler
  */
 exports.handler = async (event) => {
-  console.log('Event:', JSON.stringify(event, null, 2));
 
   const method = event.httpMethod || (event.requestContext?.http?.method);
   const path = event.rawPath || event.path || (event.requestContext?.http?.path) || '';
@@ -245,23 +237,14 @@ exports.handler = async (event) => {
       try {
         const parsed = await event;
 
-        console.log("===== MULTIPART DEBUG =====");
-        console.log("Files found:", parsed.files?.length);
-
         const file = parsed.files[0];
 
         const fileBuffer = file.content;
 
-        console.log("Filename:", file.filename);
-        console.log("ContentType:", file.contentType);
-        console.log("typeof content:", typeof file.content);
-        console.log("IsBuffer:", Buffer.isBuffer(file.content));
-        console.log("First 20 bytes:", fileBuffer.slice(0, 20).toString("hex"));
 
         const sheetName = parsed.sheetName || null;
         const result = parseExcelFile(fileBuffer, sheetName);
 
-        console.log("Parse Result:", result);
 
         return {
           statusCode: result.success ? 200 : 400,
@@ -336,7 +319,10 @@ exports.handler = async (event) => {
           success: true,
           data: {
             inserted: result.inserted,
+            updated: result.updated,
+            saved: result.saved,
             skipped: result.skipped,
+            unchanged: result.unchanged,
             total: data.length,
             errors: result.errors,
           },
@@ -443,7 +429,6 @@ exports.handler = async (event) => {
       }),
     };
   } catch (err) {
-    console.error('[Lambda Error]', err);
     return {
       statusCode: 500,
       headers: buildHeaders(),

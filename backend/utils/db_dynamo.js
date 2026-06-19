@@ -9,17 +9,63 @@ const {
 
 const TABLE = process.env.DYNAMO_TABLE_NAME || 'Repairs';
 
+const REPAIR_FIELDS = [
+  'equipment_type',
+  'service_category',
+  'base_price',
+  'service_hours',
+  'availability',
+  'description',
+  'notes',
+];
+
+function buildRepairFields(row) {
+  return {
+    equipment_type: row['Equipment Type'] || '',
+    service_category: row['Service Category'] || '',
+    base_price: Number(row['Base Price']) || 0,
+    service_hours: Number(row['Service Hours']) || 0,
+    availability: row['Availability'] || '',
+    description: row['Description'] || '',
+    notes: row['Notes'] || '',
+  };
+}
+
+function hasRepairChanges(existing, incoming) {
+  if (!existing) return true;
+  return REPAIR_FIELDS.some((field) => existing[field] !== incoming[field]);
+}
 
 async function saveRepairsToDatabase(repairs, userId = 'system') {
+  let inserted = 0;
+  let updated = 0;
   let saved = 0;
   let skipped = 0;
+  let unchanged = 0;
   const errors = [];
 
   for (const r of repairs) {
     try {
-      if (!r['Repair ID']) {
+      const repairId = r['Repair ID'];
+
+      if (!repairId) {
         skipped++;
         errors.push('Missing Repair ID');
+        continue;
+      }
+
+      const repairFields = buildRepairFields(r);
+      const existingResp = await ddb.send(
+        new GetCommand({
+          TableName: TABLE,
+          Key: { repair_id: repairId },
+        })
+      );
+      const existing = existingResp.Item || null;
+
+      if (!hasRepairChanges(existing, repairFields)) {
+        unchanged++;
+        skipped++;
         continue;
       }
 
@@ -28,7 +74,7 @@ async function saveRepairsToDatabase(repairs, userId = 'system') {
       await ddb.send(
         new UpdateCommand({
           TableName: TABLE,
-          Key: { repair_id: r['Repair ID'] },
+          Key: { repair_id: repairId },
           UpdateExpression: [
             'SET #equipment_type = :equipment_type',
             '#service_category = :service_category',
@@ -56,13 +102,13 @@ async function saveRepairsToDatabase(repairs, userId = 'system') {
             '#updated_at': 'updated_at',
           },
           ExpressionAttributeValues: {
-            ':equipment_type': r['Equipment Type'] || '',
-            ':service_category': r['Service Category'] || '',
-            ':base_price': Number(r['Base Price']) || 0,
-            ':service_hours': Number(r['Service Hours']) || 0,
-            ':availability': r['Availability'] || '',
-            ':description': r['Description'] || '',
-            ':notes': r['Notes'] || '',
+            ':equipment_type': repairFields.equipment_type,
+            ':service_category': repairFields.service_category,
+            ':base_price': repairFields.base_price,
+            ':service_hours': repairFields.service_hours,
+            ':availability': repairFields.availability,
+            ':description': repairFields.description,
+            ':notes': repairFields.notes,
             ':userId': userId,
             ':source': 'excel-upload',
             ':now': now,
@@ -70,13 +116,18 @@ async function saveRepairsToDatabase(repairs, userId = 'system') {
         })
       );
 
+      if (existing) {
+        updated++;
+      } else {
+        inserted++;
+      }
       saved++;
     } catch (err) {
       errors.push(err.message || String(err));
     }
   }
 
-  return { inserted: saved, saved, skipped, errors };
+  return { inserted, updated, saved, skipped, unchanged, errors };
 }
 
 async function getAllRepairs() {

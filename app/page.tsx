@@ -62,7 +62,7 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [uploadedData, setUploadedData] = useState<any>(null);
   const [dbData, setDbData] = useState<any>(null);
-  const [uploadObjectKey, setUploadObjectKey] = useState<string | null>(null);
+  //const [uploadObjectKey, setUploadObjectKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
@@ -171,7 +171,7 @@ export default function Page() {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    setUploadObjectKey(null);
+    //setUploadObjectKey(null);
     setUploadedData(null);
 
     try {
@@ -197,7 +197,7 @@ export default function Page() {
         throw new Error('S3 upload failed');
       }
 
-      setUploadObjectKey(objectKey);
+      //setUploadObjectKey(objectKey);
       setSuccess('File uploaded successfully. Preview is ready.');
       setFile(null);
       setFileName('');
@@ -248,7 +248,7 @@ export default function Page() {
 
       if (response.data.success) {
         setSuccess(
-          `Successfully saved! Saved: ${response.data.data.saved ?? response.data.data.inserted}, Skipped: ${response.data.data.skipped}`
+          `Successfully saved! Inserted: ${response.data.data.inserted}, Updated: ${response.data.data.updated ?? 0}, Unchanged: ${response.data.data.unchanged ?? 0}, Skipped: ${response.data.data.skipped}`
         );
         setUploadedData(null);
       }
@@ -468,22 +468,6 @@ export default function Page() {
                 </CardContent>
               </Card>
 
-              {/* Upload Result */}
-              {uploadObjectKey && (
-                <Card elevation={2}>
-                  <CardContent>
-                    <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
-                      Upload Complete
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                      File uploaded to S3 and will be processed automatically.
-                    </Typography>
-                    <Typography variant="body2">
-                      Object Key: <strong>{uploadObjectKey}</strong>
-                    </Typography>
-                  </CardContent>
-                </Card>
-              )}
 
               {uploadedData && uploadedData.success && (uploadedData.data || uploadedData.sheets) && (
                 <Card elevation={2}>

@@ -6,6 +6,7 @@ const client = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const CHANGELOG_TABLE = process.env.CHANGELOG_TABLE_NAME || 'RepairsChangeLog';
+const IGNORED_DIFF_FIELDS = new Set(['updated_at', 'userId', 'source']);
 
 exports.handler = async (event) => {
   console.log('Stream event received:', JSON.stringify(event));
@@ -28,6 +29,11 @@ exports.handler = async (event) => {
 
       // Compute diff
       const diff = computeDiff(oldImage, newImage);
+
+      if (eventName === 'MODIFY' && !diff) {
+        console.log(`Skipping MODIFY event with no audited field changes for repair ${newImage.repair_id || newImage.id}`);
+        continue;
+      }
 
       // Build changelog entry
       const changelogEntry = {
@@ -69,6 +75,10 @@ function computeDiff(oldImage, newImage) {
 
   const diff = {};
   for (const key in newImage) {
+    if (IGNORED_DIFF_FIELDS.has(key)) {
+      continue;
+    }
+
     if (oldImage[key] !== newImage[key]) {
       diff[key] = { old: oldImage[key], new: newImage[key] };
     }
