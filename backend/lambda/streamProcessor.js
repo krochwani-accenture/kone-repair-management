@@ -17,8 +17,8 @@ exports.handler = async (event) => {
     try {
       const { dynamodb, eventName, eventID, eventSource } = record;
 
-      // Only process INSERT and MODIFY events
-      if (!['INSERT', 'MODIFY'].includes(eventName)) {
+      // Only process MODIFY events (skip INSERT to avoid logging on creation)
+      if (eventName !== 'MODIFY') {
         console.log(`Skipping ${eventName} event`);
         continue;
       }
