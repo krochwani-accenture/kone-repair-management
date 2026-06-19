@@ -4,6 +4,7 @@ const {
   getRepairById,
   getRepairCount,
   clearAllRepairs,
+  validatePricingRows,
 } = require('../utils/db_dynamo');
 const jwt = require('jsonwebtoken');
 const users = require('../users');
@@ -39,13 +40,8 @@ function extractRegionFromNotes(notes) {
 /**
  * Filter repairs by region
  */
-function filterRepairsByRegion(repairs, userRole, userRegions) {
-  if (userRole === 'global') return repairs;
-  const allowedRegions = userRegions || [];
-  return repairs.filter(repair => {
-    const region = extractRegionFromNotes(repair.notes || '');
-    return region && allowedRegions.includes(region);
-  });
+function filterRepairsByRegion(repairs) {
+  return repairs;
 }
 
 /**
@@ -293,22 +289,13 @@ exports.handler = async (event) => {
         };
       }
 
-      // Region users can only save to their region
-      if (authUser.role === 'region') {
-        const allowedRegion = authUser.regions[0];
-        for (const item of data) {
-          const region = extractRegionFromNotes(item.Notes || '');
-          if (region && region !== allowedRegion) {
-            return {
-              statusCode: 403,
-              headers: buildHeaders(),
-              body: JSON.stringify({
-                success: false,
-                error: `You can only save repairs for region: ${allowedRegion}`,
-              }),
-            };
-          }
-        }
+      const validation = validatePricingRows(data);
+      if (!validation.valid) {
+        return {
+          statusCode: 400,
+          headers: buildHeaders(),
+          body: JSON.stringify({ success: false, error: validation.error }),
+        };
       }
 
       const result = await saveRepairsToDatabase(data, authUser.username || 'system');
@@ -364,21 +351,6 @@ exports.handler = async (event) => {
             error: 'Repair not found',
           }),
         };
-      }
-
-      // Region access check
-      if (authUser.role === 'region') {
-        const repairRegion = extractRegionFromNotes(repair.notes || '');
-        if (!repairRegion || !authUser.regions.includes(repairRegion)) {
-          return {
-            statusCode: 403,
-            headers: buildHeaders(),
-            body: JSON.stringify({
-              success: false,
-              error: `Access denied. You only have access to regions: ${authUser.regions.join(', ')}`,
-            }),
-          };
-        }
       }
 
       return {

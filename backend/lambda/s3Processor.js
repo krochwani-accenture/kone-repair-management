@@ -39,15 +39,21 @@ exports.handler = async (event) => {
   const bodyBuffer = await streamToBuffer(object.Body);
 
   const workbook = XLSX.read(bodyBuffer, { type: 'buffer' });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(sheet);
-
-  const result = await saveRepairsToDatabase(rows);
-  console.log('S3 processing result:', result);
+  // Import every populated pricing sheet; the previous implementation only
+  // processed the first sheet in a multi-sheet PricingManagement workbook.
+  const results = [];
+  let processed = 0;
+  for (const sheetName of workbook.SheetNames) {
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+    if (rows.length === 0) continue;
+    const result = await saveRepairsToDatabase(rows, 's3-processor', `s3://${bucket}/${key}#${sheetName}`);
+    results.push({ sheetName, processed: rows.length, ...result });
+    processed += rows.length;
+  }
+  console.log('S3 processing results:', results);
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ success: true, objectKey: key, sheetName, processed: rows.length, result }),
+    body: JSON.stringify({ success: true, objectKey: key, processed, results }),
   };
 };
