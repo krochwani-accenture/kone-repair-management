@@ -9,17 +9,20 @@ This document outlines the recommended approach for implementing a comprehensive
 ## Business Requirements & Context
 
 ### Current Scope (MVP - Phase 1)
+
 - **2,000 Service Repair items** in the product catalog
 - **72 Sales Organizations** accessing the system
 - **Global users** with access to all line items per RFP
 - **File-based uploads** as primary data entry method (Excel files)
 
 ### Future Scope (Next Phase - Phase 2)
+
 - **200,000+ Materials** with connected configurations
 - **Cross-organizational** reporting and compliance
 - **Materialized connections** between repairs and materials
 
 ### Compliance Mandate
+
 - **Audit requirement**: ALL changes to ALL fields must be logged
 - **Immutable trail**: Complete, tamper-proof record of modifications
 - **Who, What, When**: Track user identity, fields changed, timestamps
@@ -30,7 +33,9 @@ This document outlines the recommended approach for implementing a comprehensive
 ## Problem Statement
 
 ### Challenge 1: Inconsistent Data Entry
+
 **Problem**: Users upload Excel files with:
+
 - Different filenames each time
 - Varying columns across uploads
 - Missing data in some cells
@@ -39,7 +44,9 @@ This document outlines the recommended approach for implementing a comprehensive
 **Solution**: Match records using unique identifier (repairId), ignore missing columns, normalize values before comparison
 
 ### Challenge 2: Change Detection at Scale
+
 **Problem**: With 2,000→200,000 items, manually detecting changes becomes expensive:
+
 - Need to fetch all current data
 - Compare field-by-field
 - Process multiple times per day
@@ -47,7 +54,9 @@ This document outlines the recommended approach for implementing a comprehensive
 **Solution**: Use DynamoDB Streams for automatic, real-time change detection
 
 ### Challenge 3: Compliance Audit Trail
+
 **Problem**: Compliance requires complete audit of ALL changes:
+
 - File uploads (currently tracked)
 - API edits (future feature)
 - UI changes (future feature)
@@ -56,7 +65,9 @@ This document outlines the recommended approach for implementing a comprehensive
 **Solution**: Automatic stream-based auditing captures every change method
 
 ### Challenge 4: Multi-Organization Support
+
 **Problem**: 72 sales organizations need:
+
 - Isolated views of their data
 - Compliance reports per organization
 - Cross-org reporting for global users
@@ -70,6 +81,7 @@ This document outlines the recommended approach for implementing a comprehensive
 ### Why DynamoDB Streams?
 
 #### 1. **Compliance Excellence** ✅
+
 ```
 DynamoDB Streams automatically captures EVERY change:
 - File uploads: YES
@@ -81,6 +93,7 @@ Manual approach captures only what we code for → GAPS in audit trail
 ```
 
 #### 2. **Scalability & Cost Efficiency** ✅
+
 ```
 Cost comparison at scale:
 
@@ -96,6 +109,7 @@ Next Phase (200,000 materials):
 ```
 
 #### 3. **Automatic Change Detection** ✅
+
 ```
 Streams provides old and new values automatically
 No need to:
@@ -107,6 +121,7 @@ This works for ANY data change method → future-proof
 ```
 
 #### 4. **Real-Time Audit Logging** ✅
+
 ```
 Every change is logged immediately:
 - Transaction sequence number (ordering guarantee)
@@ -118,6 +133,7 @@ Immutable by design (write-once log)
 ```
 
 #### 5. **Multi-Organization Support** ✅
+
 ```
 Built-in support for 72 sales organizations:
   - Org-level filtering built into queries
@@ -131,6 +147,7 @@ Built-in support for 72 sales organizations:
 ## Architecture Comparison
 
 ### Approach 1: Manual Detection (File Upload Only)
+
 ```
 Upload file
   ↓
@@ -152,6 +169,7 @@ ISSUES:
 ```
 
 ### Approach 2: DynamoDB Streams (Recommended) ✅
+
 ```
 Upload file/API edit/UI change/Scheduled task
   ↓
@@ -186,17 +204,19 @@ BENEFITS:
 **Solution Strategy**:
 
 #### Step 1: Schema Validation
+
 ```
 REQUIRED: repairId column must be present
   → Used to match with existing items in database
   → Independent of filename
-  
+
 OPTIONAL: Any other columns can be included or omitted
   → Missing column = keep existing value in database
   → No accidental data loss
 ```
 
 #### Step 2: Data Quality Checks
+
 ```
 Check for missing values, unusual formats
 Return to user: "3 cells are empty - keeping existing values?"
@@ -205,6 +225,7 @@ Process continues with validation warnings logged
 ```
 
 #### Step 3: Value Normalization
+
 ```
 Before comparing, normalize values:
   "IN_PROGRESS" vs "in progress" → treated as SAME
@@ -214,6 +235,7 @@ Before comparing, normalize values:
 ```
 
 #### Step 4: Smart Field Handling
+
 ```
 Empty/null in upload = KEEP existing value
   Example: User uploads file without Priority column
@@ -267,6 +289,7 @@ This prevents accidental data clearing
 ## Compliance Features
 
 ### 1. Immutable Audit Log
+
 ```
 Once a change is logged, it CANNOT be modified or deleted
 - Database permissions enforce write-only access
@@ -276,6 +299,7 @@ Once a change is logged, it CANNOT be modified or deleted
 ```
 
 ### 2. Complete Change Tracking
+
 ```
 Every field change is recorded:
 - Field name
@@ -288,6 +312,7 @@ Every field change is recorded:
 ```
 
 ### 3. Legal Hold Support
+
 ```
 Mark changelog entries as "under legal hold"
 - Cannot be deleted or archived
@@ -297,6 +322,7 @@ Mark changelog entries as "under legal hold"
 ```
 
 ### 4. Compliance Reports
+
 ```
 Generate certified audit reports:
 - Changes by date range
@@ -352,6 +378,7 @@ Cost per item:         $0.003-0.005 per repair/material
 ```
 
 ### Comparison: Manual Approach at Scale
+
 ```
 Manual detection cost for 200,000 items:
   - Fetching 200k items repeatedly
@@ -368,6 +395,7 @@ Streams advantage:     14x cheaper ✅
 ## Implementation Timeline
 
 ### Phase 1: MVP (4-6 weeks)
+
 ```
 Week 1-2:
   ✓ Create DynamoDB tables with Stream enabled
@@ -387,6 +415,7 @@ Week 5-6:
 ```
 
 ### Phase 2: Next Phase (Parallel or Sequential)
+
 ```
 Sprint 1-2:
   ✓ Create materials table with stream
@@ -404,36 +433,42 @@ Sprint 3-4:
 ## Key Benefits Summary
 
 ### ✅ Compliance
+
 - Audit trail of ALL changes (not just uploads)
 - Immutable, tamper-proof logs
 - Legal hold and retention support
 - Compliance-certified reports
 
 ### ✅ Scalability
+
 - Handles 2,000 → 200,000+ items efficiently
 - Per-organization isolation and reporting
 - Global user access with security
 - No architectural changes needed as you scale
 
 ### ✅ Cost-Effectiveness
+
 - $150-200/year for MVP
 - $700-1,000/year for full scale with 200k items
 - 14x cheaper than manual approach at scale
 - Optimization built-in
 
 ### ✅ Future-Proof
+
 - Works for file uploads TODAY
 - Ready for API edits TOMORROW
 - Ready for UI changes NEXT WEEK
 - Ready for scheduled tasks WHENEVER
 
 ### ✅ Reliability
+
 - Automatic, no manual detection code
 - Real-time processing
 - Deduplication built-in
 - Error handling and retry logic
 
 ### ✅ Performance
+
 - Fast user response times (async changelog)
 - Efficient database queries
 - Optimized for 72 organizations
@@ -444,17 +479,19 @@ Sprint 3-4:
 ## Security & Data Protection
 
 ### Access Control
+
 ```
 Different access levels:
   - Global users:        Full audit across all organizations
   - Organization users:  Their organization data only
   - Compliance team:     Legal hold access, reports
   - Read-only:           Query access, no modification
-  
+
 IAM policies enforce permissions at Lambda/DynamoDB level
 ```
 
 ### Data Encryption
+
 ```
   - In-transit: TLS/HTTPS
   - At-rest: DynamoDB encryption
@@ -463,6 +500,7 @@ IAM policies enforce permissions at Lambda/DynamoDB level
 ```
 
 ### Audit Trail Protection
+
 ```
   - Changelog table: Write-only (no delete/update)
   - Legal hold entries: Permanently retained
@@ -475,42 +513,51 @@ IAM policies enforce permissions at Lambda/DynamoDB level
 ## Risk Mitigation
 
 ### Data Quality Risk
+
 **Risk**: Users upload files with missing/inconsistent data
-**Mitigation**: 
-  - Pre-upload validation endpoint
-  - User confirmation for empty cells
-  - Data quality scoring and warnings
-  - Keep existing values for empty columns
+**Mitigation**:
+
+- Pre-upload validation endpoint
+- User confirmation for empty cells
+- Data quality scoring and warnings
+- Keep existing values for empty columns
 
 ### Compliance Audit Risk
+
 **Risk**: Changes not properly logged
 **Mitigation**:
-  - DynamoDB Streams ensures automatic logging
-  - No code path can bypass changelog
-  - Real-time verification of immutability
-  - Monthly compliance checks
+
+- DynamoDB Streams ensures automatic logging
+- No code path can bypass changelog
+- Real-time verification of immutability
+- Monthly compliance checks
 
 ### Performance Risk
+
 **Risk**: Changelog processing delays
 **Mitigation**:
-  - Lambda processes asynchronously
-  - No impact on user response time
-  - DLQ for failed records
-  - Batch processing optimization
+
+- Lambda processes asynchronously
+- No impact on user response time
+- DLQ for failed records
+- Batch processing optimization
 
 ### Cost Risk
+
 **Risk**: Unexpected AWS charges
 **Mitigation**:
-  - Fixed-cost model (per-operation pricing)
-  - Monitoring and alerting
-  - Predictable at scale
-  - No surprise charges
+
+- Fixed-cost model (per-operation pricing)
+- Monitoring and alerting
+- Predictable at scale
+- No surprise charges
 
 ---
 
 ## Success Criteria
 
 ### MVP Success
+
 - ✅ 2,000 repairs fully tracked in changelog
 - ✅ Changes detected for 72 organizations
 - ✅ Compliance reports generated successfully
@@ -518,6 +565,7 @@ IAM policies enforce permissions at Lambda/DynamoDB level
 - ✅ All changes immutable and auditable
 
 ### Phase 2 Success
+
 - ✅ 200,000 materials tracked
 - ✅ Material-repair connections audited
 - ✅ Cross-organizational reporting working
@@ -531,6 +579,7 @@ IAM policies enforce permissions at Lambda/DynamoDB level
 ### Recommendation: **Proceed with DynamoDB Streams Architecture**
 
 **Rationale:**
+
 1. Meets compliance requirements completely
 2. Cost-effective at all scales
 3. Future-proof for growth to 200k items
@@ -553,39 +602,49 @@ IAM policies enforce permissions at Lambda/DynamoDB level
 ## Questions & Discussions
 
 ### Q1: What if we only need file uploads, not API edits?
+
 **A**: Streams is still the right choice because:
-  - Compliance requires audit of future changes
-  - RFP likely anticipates future features
-  - No additional cost for Streams over manual
-  - Simpler code maintenance
-  - Better data quality tracking
+
+- Compliance requires audit of future changes
+- RFP likely anticipates future features
+- No additional cost for Streams over manual
+- Simpler code maintenance
+- Better data quality tracking
 
 ### Q2: Can we change to Streams later if needed?
+
 **A**: Yes, but there would be:
-  - Downtime to migrate
-  - Loss of historical changelog for non-stream period
-  - Better to implement now, avoid retrofit
+
+- Downtime to migrate
+- Loss of historical changelog for non-stream period
+- Better to implement now, avoid retrofit
 
 ### Q3: How long is audit trail kept?
+
 **A**: Configurable retention:
-  - MVP: 2 years (recommended)
-  - Legal holds: Permanent
-  - Compliance: 7+ years (per regulations)
-  - Cost: Minimal (old entries archived to S3)
+
+- MVP: 2 years (recommended)
+- Legal holds: Permanent
+- Compliance: 7+ years (per regulations)
+- Cost: Minimal (old entries archived to S3)
 
 ### Q4: Can global users see all organizations?
+
 **A**: Yes, by design:
-  - Global role bypasses organization filters
-  - See all 2,000 items + all 200,000 materials
-  - Audit reports across all organizations
-  - Compliance oversight capability
+
+- Global role bypasses organization filters
+- See all 2,000 items + all 200,000 materials
+- Audit reports across all organizations
+- Compliance oversight capability
 
 ### Q5: What's the performance impact?
+
 **A**: None visible to users:
-  - Changelog processing is asynchronous
-  - File uploads return immediately
-  - No latency added to any operation
-  - Queries optimized for 72 org filtering
+
+- Changelog processing is asynchronous
+- File uploads return immediately
+- No latency added to any operation
+- Queries optimized for 72 org filtering
 
 ---
 

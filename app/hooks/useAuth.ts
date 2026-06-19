@@ -39,8 +39,11 @@ export function useAuth() {
 
   const login = useCallback(async (username: string, password: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ||
-        (typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:5000/api');
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL ||
+        (typeof window !== 'undefined'
+          ? `${window.location.origin}/api`
+          : 'http://localhost:5000/api');
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,7 +82,7 @@ export function useAuth() {
   const getAuthHeader = useCallback(() => {
     if (!authState.token) return {};
     return {
-      'Authorization': `Bearer ${authState.token}`,
+      Authorization: `Bearer ${authState.token}`,
     };
   }, [authState.token]);
 

@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const XLSX = require('xlsx');
-const path = require('path');
+
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 require('dotenv').config();
@@ -49,12 +49,12 @@ const getExcelSheets = (fileBuffer) => {
     return {
       success: true,
       sheets: workbook.SheetNames,
-      count: workbook.SheetNames.length
+      count: workbook.SheetNames.length,
     };
   } catch (error) {
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -74,7 +74,7 @@ const parseExcelFile = (fileBuffer, sheetName = null) => {
         rowCount: jsonData.length,
         columns: jsonData.length > 0 ? Object.keys(jsonData[0]) : [],
         sheetName: sheetName,
-        availableSheets: workbook.SheetNames
+        availableSheets: workbook.SheetNames,
       };
     }
 
@@ -88,7 +88,7 @@ const parseExcelFile = (fileBuffer, sheetName = null) => {
       sheetsResult[name] = {
         data: jsonData,
         rowCount: jsonData.length,
-        columns: jsonData.length > 0 ? Object.keys(jsonData[0]) : []
+        columns: jsonData.length > 0 ? Object.keys(jsonData[0]) : [],
       };
       totalRows += jsonData.length;
     });
@@ -97,12 +97,12 @@ const parseExcelFile = (fileBuffer, sheetName = null) => {
       success: true,
       sheets: sheetsResult,
       totalRowCount: totalRows,
-      availableSheets: workbook.SheetNames
+      availableSheets: workbook.SheetNames,
     };
   } catch (error) {
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -137,22 +137,32 @@ app.get('/api/upload/url', authMiddleware, async (req, res) => {
   try {
     const filename = req.query.filename;
     if (!filename || typeof filename !== 'string') {
-      return res.status(400).json({ success: false, error: 'Filename is required' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Filename is required' });
     }
 
     if (!UPLOAD_BUCKET) {
-      return res.status(500).json({ success: false, error: 'Upload bucket is not configured' });
+      return res
+        .status(500)
+        .json({ success: false, error: 'Upload bucket is not configured' });
     }
 
     const safeFilename = filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
     const objectKey = `uploads/${Date.now()}_${safeFilename}`;
-    const command = new PutObjectCommand({ Bucket: UPLOAD_BUCKET, Key: objectKey });
+    const command = new PutObjectCommand({
+      Bucket: UPLOAD_BUCKET,
+      Key: objectKey,
+    });
     const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
 
     return res.json({ success: true, uploadUrl, objectKey });
   } catch (error) {
     console.error('Upload URL error:', error);
-    return res.status(500).json({ success: false, error: error.message || 'Failed to generate upload URL' });
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to generate upload URL',
+    });
   }
 });
 

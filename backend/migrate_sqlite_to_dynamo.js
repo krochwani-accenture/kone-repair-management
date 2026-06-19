@@ -1,7 +1,11 @@
 const { initializeDatabase, getDatabase } = require('./db');
 const { ddb } = require('./dynamoClient');
 const { BatchWriteCommand } = require('@aws-sdk/lib-dynamodb');
-const { CreateTableCommand, DescribeTableCommand, waitUntilTableExists } = require('@aws-sdk/client-dynamodb');
+const {
+  CreateTableCommand,
+  DescribeTableCommand,
+  waitUntilTableExists,
+} = require('@aws-sdk/client-dynamodb');
 
 const TABLE = process.env.DYNAMO_TABLE_NAME || 'Repairs';
 
@@ -13,12 +17,17 @@ async function ensureRepairsTableExists() {
       await ddb.send(
         new CreateTableCommand({
           TableName: TABLE,
-          AttributeDefinitions: [{ AttributeName: 'repair_id', AttributeType: 'S' }],
+          AttributeDefinitions: [
+            { AttributeName: 'repair_id', AttributeType: 'S' },
+          ],
           KeySchema: [{ AttributeName: 'repair_id', KeyType: 'HASH' }],
           BillingMode: 'PAY_PER_REQUEST',
         })
       );
-      await waitUntilTableExists({ client: ddb }, { TableName: TABLE, maxWaitTime: 120 });
+      await waitUntilTableExists(
+        { client: ddb },
+        { TableName: TABLE, maxWaitTime: 120 }
+      );
     } else {
       throw error;
     }
@@ -28,7 +37,9 @@ async function ensureRepairsTableExists() {
 async function extractRepairsFromSqlite() {
   await initializeDatabase();
   const db = getDatabase();
-  const results = db.exec('SELECT repair_id, equipment_type, service_category, base_price, service_hours, availability, description, notes, created_at, updated_at FROM repairs');
+  const results = db.exec(
+    'SELECT repair_id, equipment_type, service_category, base_price, service_hours, availability, description, notes, created_at, updated_at FROM repairs'
+  );
   if (!results || results.length === 0) {
     return [];
   }
@@ -79,7 +90,9 @@ async function batchWrite(items) {
       return;
     }
 
-    console.log(`Migrating ${rows.length} rows from SQLite to DynamoDB table ${TABLE}`);
+    console.log(
+      `Migrating ${rows.length} rows from SQLite to DynamoDB table ${TABLE}`
+    );
     const chunks = [];
     for (let i = 0; i < rows.length; i += 25) {
       chunks.push(rows.slice(i, i + 25));
@@ -94,7 +107,9 @@ async function batchWrite(items) {
   } catch (error) {
     if (error && error.name === 'ResourceNotFoundException') {
       console.error(`Migration failed: DynamoDB table "${TABLE}" not found.`);
-      console.error('Verify DYNAMO_TABLE_NAME, AWS_REGION, and that the table exists in the target AWS account.');
+      console.error(
+        'Verify DYNAMO_TABLE_NAME, AWS_REGION, and that the table exists in the target AWS account.'
+      );
     } else {
       console.error('Migration failed:', error);
     }

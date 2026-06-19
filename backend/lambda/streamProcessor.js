@@ -11,7 +11,7 @@ const IGNORED_DIFF_FIELDS = new Set(['updated_at', 'userId', 'source']);
 exports.handler = async (event) => {
   console.log('Stream event received:', JSON.stringify(event));
 
-  const results = [];   
+  const results = [];
 
   for (const record of event.Records) {
     try {
@@ -31,7 +31,9 @@ exports.handler = async (event) => {
       const diff = computeDiff(oldImage, newImage);
 
       if (eventName === 'MODIFY' && !diff) {
-        console.log(`Skipping MODIFY event with no audited field changes for repair ${newImage.repair_id || newImage.id}`);
+        console.log(
+          `Skipping MODIFY event with no audited field changes for repair ${newImage.repair_id || newImage.id}`
+        );
         continue;
       }
 
@@ -45,26 +47,36 @@ exports.handler = async (event) => {
         newImage: newImage,
         diff: diff,
         userId: newImage.userId || 'system',
-        source: eventSource || 'dynamodb-stream'
+        source: eventSource || 'dynamodb-stream',
       };
 
       // Write to changelog table
       await docClient.send(
         new PutCommand({
           TableName: CHANGELOG_TABLE,
-          Item: changelogEntry
+          Item: changelogEntry,
         })
       );
 
       results.push({ recordId: eventID, status: 'success' });
-      console.log(`Processed ${eventName} for repair ${changelogEntry.repairId}`);
+      console.log(
+        `Processed ${eventName} for repair ${changelogEntry.repairId}`
+      );
     } catch (error) {
       console.error('Error processing record:', error);
-      results.push({ recordId: record.eventID, status: 'error', error: error.message });
+      results.push({
+        recordId: record.eventID,
+        status: 'error',
+        error: error.message,
+      });
     }
   }
 
-  return { statusCode: 200, batchItemFailures: [], processedCount: results.length };
+  return {
+    statusCode: 200,
+    batchItemFailures: [],
+    processedCount: results.length,
+  };
 };
 
 /**

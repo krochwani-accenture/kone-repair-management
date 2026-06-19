@@ -421,8 +421,8 @@ Example columns:
 
 Sample row:
 
-| Repair ID | Equipment Type | Service Category | Base Price | Service Hours | Availability | Description | Notes |
-|-----------|----------------|------------------|------------|---------------|--------------|-------------|-------|
+| Repair ID | Equipment Type | Service Category | Base Price | Service Hours | Availability | Description         | Notes               |
+| --------- | -------------- | ---------------- | ---------- | ------------- | ------------ | ------------------- | ------------------- |
 | RPR-001   | Escalator      | Maintenance      | 500        | 2             | Available    | Regular maintenance | Includes inspection |
 
 ## Troubleshooting

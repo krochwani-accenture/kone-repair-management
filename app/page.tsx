@@ -37,8 +37,11 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { useAuth } from './hooks/useAuth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:5000/api');
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== 'undefined'
+    ? `${window.location.origin}/api`
+    : 'http://localhost:5000/api');
 const REPAIRS_API_URL = process.env.NEXT_PUBLIC_REPAIRS_API_URL || API_URL;
 
 interface TabPanelProps {
@@ -95,7 +98,7 @@ export default function Page() {
     setLoginError(null);
 
     const result = await auth.login(loginUsername, loginPassword);
-    
+
     if (result.success) {
       setLoginUsername('');
       setLoginPassword('');
@@ -110,7 +113,6 @@ export default function Page() {
   const handleLogout = () => {
     auth.logout();
   };
-
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -128,7 +130,7 @@ export default function Page() {
         if (reader.result instanceof ArrayBuffer) {
           resolve(reader.result);
         } else {
-          reject(new Error('Failed to read file')); 
+          reject(new Error('Failed to read file'));
         }
       };
       reader.onerror = () => reject(new Error('Failed to read file'));
@@ -139,7 +141,10 @@ export default function Page() {
   const parseExcelSheets = (fileBuffer: ArrayBuffer) => {
     const workbook = XLSX.read(fileBuffer, { type: 'array' });
     const availableSheets = workbook.SheetNames;
-    const sheets: Record<string, { data: any[]; rowCount: number; columns: string[] }> = {};
+    const sheets: Record<
+      string,
+      { data: any[]; rowCount: number; columns: string[] }
+    > = {};
     let totalRowCount = 0;
 
     availableSheets.forEach((name) => {
@@ -225,9 +230,10 @@ export default function Page() {
       if (Array.isArray(uploadedData.data)) {
         dataToSave = uploadedData.data;
       } else if (uploadedData.sheets) {
-        const sheetNames = uploadedData.availableSheets && uploadedData.availableSheets.length
-          ? uploadedData.availableSheets
-          : Object.keys(uploadedData.sheets);
+        const sheetNames =
+          uploadedData.availableSheets && uploadedData.availableSheets.length
+            ? uploadedData.availableSheets
+            : Object.keys(uploadedData.sheets);
         sheetNames.forEach((name: string) => {
           const s = uploadedData.sheets[name];
           if (s && Array.isArray(s.data)) dataToSave.push(...s.data);
@@ -240,11 +246,15 @@ export default function Page() {
         return;
       }
 
-      const response = await axios.post(`${REPAIRS_API_URL}/repairs/save`, {
-        data: dataToSave,
-      }, {
-        headers: auth.getAuthHeader(),
-      });
+      const response = await axios.post(
+        `${REPAIRS_API_URL}/repairs/save`,
+        {
+          data: dataToSave,
+        },
+        {
+          headers: auth.getAuthHeader(),
+        }
+      );
 
       if (response.data.success) {
         setSuccess(
@@ -253,7 +263,9 @@ export default function Page() {
         setUploadedData(null);
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to save to database');
+      setError(
+        err.response?.data?.error || err.message || 'Failed to save to database'
+      );
     } finally {
       setLoading(false);
     }
@@ -272,7 +284,11 @@ export default function Page() {
         setDbData(response.data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to fetch from database');
+      setError(
+        err.response?.data?.error ||
+          err.message ||
+          'Failed to fetch from database'
+      );
     } finally {
       setDbLoading(false);
     }
@@ -291,7 +307,10 @@ export default function Page() {
           </Typography>
         </Box>
 
-        <TableContainer component={Paper} sx={{ maxHeight: 600, overflow: 'auto' }}>
+        <TableContainer
+          component={Paper}
+          sx={{ maxHeight: 600, overflow: 'auto' }}
+        >
           <Table stickyHeader>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#1976d2' }}>
@@ -346,13 +365,19 @@ export default function Page() {
               <Chip
                 label={`${auth.user.username} (${auth.user.role})`}
                 size="small"
-                sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                sx={{
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                }}
               />
               {auth.user.role === 'region' && (
                 <Chip
                   label={`Region: ${auth.user.regions.join(', ')}`}
                   size="small"
-                  sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                  sx={{
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                  }}
                 />
               )}
               <Button
@@ -375,206 +400,275 @@ export default function Page() {
           </Box>
         ) : (
           <Stack spacing={3}>
-          {/* Tabs for navigation */}
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-              <Tab label="Upload Excel" />
-              <Tab label="View Database" />
-            </Tabs>
-          </Box>
+            {/* Tabs for navigation */}
+            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+              <Tabs
+                value={tabValue}
+                onChange={(e, newValue) => setTabValue(newValue)}
+              >
+                <Tab label="Upload Excel" />
+                <Tab label="View Database" />
+              </Tabs>
+            </Box>
 
-          {/* Error and Success Alerts */}
-          {error && (
-            <Alert severity="error" onClose={() => setError(null)}>
-              {error}
-            </Alert>
-          )}
+            {/* Error and Success Alerts */}
+            {error && (
+              <Alert severity="error" onClose={() => setError(null)}>
+                {error}
+              </Alert>
+            )}
 
-          {success && (
-            <Alert severity="success" onClose={() => setSuccess(null)}>
-              {success}
-            </Alert>
-          )}
+            {success && (
+              <Alert severity="success" onClose={() => setSuccess(null)}>
+                {success}
+              </Alert>
+            )}
 
-          {/* Tab 1: Upload Section */}
-          <TabPanel value={tabValue} index={0}>
-            <Stack spacing={3}>
-              {auth.user?.role === 'region' && (
-                <Alert severity="info">
-                  You are logged in as a region user. You can only save repairs for region: <strong>{auth.user.regions.join(', ')}</strong>
-                </Alert>
-              )}
-              <Card elevation={2}>
-                <CardContent>
-                  <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
-                    Upload Repair Data
-                  </Typography>
-
-                  <Stack spacing={2}>
-                    <Box
-                      sx={{
-                        border: '2px dashed #1976d2',
-                        borderRadius: 2,
-                        p: 3,
-                        textAlign: 'center',
-                        backgroundColor: '#f5f5f5',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          backgroundColor: '#e3f2fd',
-                          borderColor: '#0d47a1',
-                        },
-                      }}
-                    >
-                      <input
-                        type="file"
-                        accept=".xlsx,.xls"
-                        onChange={handleFileChange}
-                        style={{ display: 'none' }}
-                        id="file-input"
-                      />
-                      <label htmlFor="file-input" style={{ cursor: 'pointer', display: 'block' }}>
-                        <CloudUploadIcon sx={{ fontSize: 48, color: '#1976d2', mb: 1 }} />
-                        <Typography variant="body1" sx={{ mb: 1 }}>
-                          {fileName || 'Click to select an Excel file or drag and drop'}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#666' }}>
-                          Supported formats: .xlsx, .xls
-                        </Typography>
-                      </label>
-                    </Box>
-
-                    <Stack direction="row" spacing={2} style={{ justifyContent:"flex-end" }}>
-                      <Button
-                        variant="outlined"
-                        onClick={() => {
-                          setFile(null);
-                          setFileName('');
-                          setError(null);
-                        }}
-                      >
-                        Clear
-                      </Button>
-                      <Button
-                        variant="contained"
-                        onClick={handleUpload}
-                        disabled={!file || loading}
-                        sx={{ minWidth: 150 }}
-                      >
-                        {loading ? <CircularProgress size={24} /> : 'Upload File'}
-                      </Button>
-                    </Stack>
-                  </Stack>
-                </CardContent>
-              </Card>
-
-
-              {uploadedData && uploadedData.success && (uploadedData.data || uploadedData.sheets) && (
+            {/* Tab 1: Upload Section */}
+            <TabPanel value={tabValue} index={0}>
+              <Stack spacing={3}>
+                {auth.user?.role === 'region' && (
+                  <Alert severity="info">
+                    You are logged in as a region user. You can only save
+                    repairs for region:{' '}
+                    <strong>{auth.user.regions.join(', ')}</strong>
+                  </Alert>
+                )}
                 <Card elevation={2}>
                   <CardContent>
-                    <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
-                      Repair Data Preview
+                    <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
+                      Upload Repair Data
                     </Typography>
 
-                    <Box sx={{ mb: 3 }}>
-                      {uploadedData && uploadedData.sheets ? (
-                        <>
-                          <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                            Total Records: <strong>{uploadedData.totalRowCount}</strong>
-                          </Typography>
-                          <Typography variant="body2" color="textSecondary">
-                            Sheets: <strong>{(uploadedData.availableSheets || Object.keys(uploadedData.sheets)).join(', ')}</strong>
-                          </Typography>
-                        </>
-                      ) : (
-                        <>
-                          <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                            Total Records: <strong>{uploadedData.rowCount}</strong>
-                          </Typography>
-                          <Typography variant="body2" color="textSecondary">
-                            Columns: <strong>{uploadedData.columns.join(', ')}</strong>
-                          </Typography>
-                        </>
-                      )}
-                    </Box>
-
-                    {/* Save to Database Button */}
-                    <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-                      <Button
-                        variant="contained"
-                        color="success"
-                        startIcon={<SaveIcon />}
-                        onClick={handleSaveToDatabase}
-                        disabled={loading}
+                    <Stack spacing={2}>
+                      <Box
+                        sx={{
+                          border: '2px dashed #1976d2',
+                          borderRadius: 2,
+                          p: 3,
+                          textAlign: 'center',
+                          backgroundColor: '#f5f5f5',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            backgroundColor: '#e3f2fd',
+                            borderColor: '#0d47a1',
+                          },
+                        }}
                       >
-                        {loading ? <CircularProgress size={24} /> : 'Save to Database'}
-                      </Button>
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleFileChange}
+                          style={{ display: 'none' }}
+                          id="file-input"
+                        />
+                        <label
+                          htmlFor="file-input"
+                          style={{ cursor: 'pointer', display: 'block' }}
+                        >
+                          <CloudUploadIcon
+                            sx={{ fontSize: 48, color: '#1976d2', mb: 1 }}
+                          />
+                          <Typography variant="body1" sx={{ mb: 1 }}>
+                            {fileName ||
+                              'Click to select an Excel file or drag and drop'}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#666' }}>
+                            Supported formats: .xlsx, .xls
+                          </Typography>
+                        </label>
+                      </Box>
+
+                      <Stack
+                        direction="row"
+                        spacing={2}
+                        style={{ justifyContent: 'flex-end' }}
+                      >
+                        <Button
+                          variant="outlined"
+                          onClick={() => {
+                            setFile(null);
+                            setFileName('');
+                            setError(null);
+                          }}
+                        >
+                          Clear
+                        </Button>
+                        <Button
+                          variant="contained"
+                          onClick={handleUpload}
+                          disabled={!file || loading}
+                          sx={{ minWidth: 150 }}
+                        >
+                          {loading ? (
+                            <CircularProgress size={24} />
+                          ) : (
+                            'Upload File'
+                          )}
+                        </Button>
+                      </Stack>
                     </Stack>
-
-                    {(() => {
-                      if (uploadedData && uploadedData.sheets) {
-                        const sheetNames = uploadedData.availableSheets && uploadedData.availableSheets.length
-                          ? uploadedData.availableSheets
-                          : Object.keys(uploadedData.sheets);
-
-                        const mergedData: any[] = [];
-                        const columnsSet = new Set<string>();
-
-                        sheetNames.forEach((name: string) => {
-                          const sheet = uploadedData.sheets[name];
-                          if (sheet && Array.isArray(sheet.data)) {
-                            sheet.data.forEach((row: any) => {
-                              mergedData.push(row);
-                              Object.keys(row).forEach((key) => columnsSet.add(key));
-                            });
-                          }
-                        });
-
-                        const mergedColumns = Array.from(columnsSet);
-                        return renderDataTable(mergedData, mergedColumns, 'Excel Data Preview');
-                      }
-
-                      return renderDataTable(
-                        uploadedData.data,
-                        uploadedData.columns,
-                        'Excel Data Preview'
-                      );
-                    })()}
                   </CardContent>
                 </Card>
-              )}
-            </Stack>
-          </TabPanel>
 
-          {/* Tab 2: Database View */}
-          <TabPanel value={tabValue} index={1}>
-            <Stack spacing={3}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                  Database Records
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<GetAppIcon />}
-                  onClick={fetchDataFromDatabase}
-                  disabled={dbLoading}
+                {uploadedData &&
+                  uploadedData.success &&
+                  (uploadedData.data || uploadedData.sheets) && (
+                    <Card elevation={2}>
+                      <CardContent>
+                        <Typography
+                          variant="h5"
+                          sx={{ mb: 2, fontWeight: 'bold' }}
+                        >
+                          Repair Data Preview
+                        </Typography>
+
+                        <Box sx={{ mb: 3 }}>
+                          {uploadedData && uploadedData.sheets ? (
+                            <>
+                              <Typography
+                                variant="body2"
+                                color="textSecondary"
+                                sx={{ mb: 1 }}
+                              >
+                                Total Records:{' '}
+                                <strong>{uploadedData.totalRowCount}</strong>
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                Sheets:{' '}
+                                <strong>
+                                  {(
+                                    uploadedData.availableSheets ||
+                                    Object.keys(uploadedData.sheets)
+                                  ).join(', ')}
+                                </strong>
+                              </Typography>
+                            </>
+                          ) : (
+                            <>
+                              <Typography
+                                variant="body2"
+                                color="textSecondary"
+                                sx={{ mb: 1 }}
+                              >
+                                Total Records:{' '}
+                                <strong>{uploadedData.rowCount}</strong>
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                Columns:{' '}
+                                <strong>
+                                  {uploadedData.columns.join(', ')}
+                                </strong>
+                              </Typography>
+                            </>
+                          )}
+                        </Box>
+
+                        {/* Save to Database Button */}
+                        <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+                          <Button
+                            variant="contained"
+                            color="success"
+                            startIcon={<SaveIcon />}
+                            onClick={handleSaveToDatabase}
+                            disabled={loading}
+                          >
+                            {loading ? (
+                              <CircularProgress size={24} />
+                            ) : (
+                              'Save to Database'
+                            )}
+                          </Button>
+                        </Stack>
+
+                        {(() => {
+                          if (uploadedData && uploadedData.sheets) {
+                            const sheetNames =
+                              uploadedData.availableSheets &&
+                              uploadedData.availableSheets.length
+                                ? uploadedData.availableSheets
+                                : Object.keys(uploadedData.sheets);
+
+                            const mergedData: any[] = [];
+                            const columnsSet = new Set<string>();
+
+                            sheetNames.forEach((name: string) => {
+                              const sheet = uploadedData.sheets[name];
+                              if (sheet && Array.isArray(sheet.data)) {
+                                sheet.data.forEach((row: any) => {
+                                  mergedData.push(row);
+                                  Object.keys(row).forEach((key) =>
+                                    columnsSet.add(key)
+                                  );
+                                });
+                              }
+                            });
+
+                            const mergedColumns = Array.from(columnsSet);
+                            return renderDataTable(
+                              mergedData,
+                              mergedColumns,
+                              'Excel Data Preview'
+                            );
+                          }
+
+                          return renderDataTable(
+                            uploadedData.data,
+                            uploadedData.columns,
+                            'Excel Data Preview'
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+                  )}
+              </Stack>
+            </TabPanel>
+
+            {/* Tab 2: Database View */}
+            <TabPanel value={tabValue} index={1}>
+              <Stack spacing={3}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
                 >
-                  {dbLoading ? <CircularProgress size={24} /> : 'Refresh'}
-                </Button>
-              </Box>
-
-              {dbLoading && !dbData ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                  <CircularProgress />
+                  <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                    Database Records
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    startIcon={<GetAppIcon />}
+                    onClick={fetchDataFromDatabase}
+                    disabled={dbLoading}
+                  >
+                    {dbLoading ? <CircularProgress size={24} /> : 'Refresh'}
+                  </Button>
                 </Box>
-              ) : dbData && dbData.success && Array.isArray(dbData.data) && dbData.data.length > 0 ? (
-                renderDataTable(dbData.data, Object.keys(dbData.data[0]), 'Database Records')
-              ) : dbData && dbData.success ? (
-                <Alert severity="info">No records found in database</Alert>
-              ) : null}
-            </Stack>
-          </TabPanel>
-        </Stack>
+
+                {dbLoading && !dbData ? (
+                  <Box
+                    sx={{ display: 'flex', justifyContent: 'center', py: 4 }}
+                  >
+                    <CircularProgress />
+                  </Box>
+                ) : dbData &&
+                  dbData.success &&
+                  Array.isArray(dbData.data) &&
+                  dbData.data.length > 0 ? (
+                  renderDataTable(
+                    dbData.data,
+                    Object.keys(dbData.data[0]),
+                    'Database Records'
+                  )
+                ) : dbData && dbData.success ? (
+                  <Alert severity="info">No records found in database</Alert>
+                ) : null}
+              </Stack>
+            </TabPanel>
+          </Stack>
         )}
       </Container>
 
@@ -583,9 +677,7 @@ export default function Page() {
         <DialogTitle>Login to Repair Management System</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 2 }}>
-            {loginError && (
-              <Alert severity="error">{loginError}</Alert>
-            )}
+            {loginError && <Alert severity="error">{loginError}</Alert>}
             <TextField
               fullWidth
               label="Username"

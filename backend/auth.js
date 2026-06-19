@@ -34,8 +34,9 @@ function loginHandler(req, res) {
     }
 
     // Find user in demo list
-    const user = users.find(u => u.username === username && u.password === password);
-
+    const user = users.find(
+      (u) => u.username === username && u.password === password
+    );
 
     if (!user) {
       return res.status(401).json({
@@ -82,6 +83,7 @@ function authMiddleware(req, res, next) {
     req.user = decoded;
     next();
   } catch (error) {
+    console.error('[Auth] Middleware error:', error);
     res.status(401).json({
       success: false,
       error: 'Invalid or expired token',
@@ -117,7 +119,7 @@ function checkRegionAccess(req, res, next) {
 function getRequestRegion(req) {
   const regionParam = req.query.region || req.body.region;
   if (regionParam) return regionParam;
-  
+
   // For region users, use their first region
   if (req.user.role === 'region' && req.user.regions.length > 0) {
     return req.user.regions[0];

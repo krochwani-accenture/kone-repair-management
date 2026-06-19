@@ -9,7 +9,6 @@ const {
 const jwt = require('jsonwebtoken');
 const users = require('../users');
 const XLSX = require('xlsx');
-const Busboy = require('busboy');
 
 const SECRET = process.env.JWT_SECRET || 'demo-secret-key';
 
@@ -29,15 +28,6 @@ function createToken(user) {
 }
 
 /**
- * Extract region from Notes field
- */
-function extractRegionFromNotes(notes) {
-  if (!notes) return null;
-  const match = notes.match(/Region:\s*([A-Z]+)/i);
-  return match ? match[1].toUpperCase() : null;
-}
-
-/**
  * Filter repairs by region
  */
 function filterRepairsByRegion(repairs) {
@@ -48,7 +38,8 @@ function filterRepairsByRegion(repairs) {
  * Parse auth header and return user
  */
 function getAuthUser(event) {
-  const authHeader = event.headers?.authorization || event.headers?.Authorization;
+  const authHeader =
+    event.headers?.authorization || event.headers?.Authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
@@ -82,18 +73,20 @@ function parseExcelFile(fileBuffer, sheetName = null) {
       throw new Error('Invalid file buffer: empty or not a buffer');
     }
 
-
     // Check for valid Excel file signature (ZIP header)
     const header = fileBuffer.slice(0, 4).toString('hex');
     if (header !== '504b0304') {
-      throw new Error(`Invalid Excel file format. Expected ZIP header, got: ${header}`);
+      throw new Error(
+        `Invalid Excel file format. Expected ZIP header, got: ${header}`
+      );
     }
 
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
 
-    const selectedSheet = sheetName && workbook.SheetNames.includes(sheetName)
-      ? sheetName
-      : workbook.SheetNames[0];
+    const selectedSheet =
+      sheetName && workbook.SheetNames.includes(sheetName)
+        ? sheetName
+        : workbook.SheetNames[0];
 
     const sheet = workbook.Sheets[selectedSheet];
 
@@ -108,19 +101,18 @@ function parseExcelFile(fileBuffer, sheetName = null) {
       availableSheets: workbook.SheetNames,
     };
   } catch (error) {
-    console.error("[v0] XLSX ERROR:", error.message);
-    console.error("[v0] Error stack:", error.stack);
-    console.error("[v0] Error name:", error.name);
+    console.error('[v0] XLSX ERROR:', error.message);
+    console.error('[v0] Error stack:', error.stack);
+    console.error('[v0] Error name:', error.name);
 
     return {
       success: false,
       error: error.message,
       errorName: error.name,
-      stack: error.stack
+      stack: error.stack,
     };
   }
 }
-
 
 function getExcelSheets(fileBuffer) {
   try {
@@ -142,9 +134,9 @@ function getExcelSheets(fileBuffer) {
  * Main Lambda handler
  */
 exports.handler = async (event) => {
-
-  const method = event.httpMethod || (event.requestContext?.http?.method);
-  const path = event.rawPath || event.path || (event.requestContext?.http?.path) || '';
+  const method = event.httpMethod || event.requestContext?.http?.method;
+  const path =
+    event.rawPath || event.path || event.requestContext?.http?.path || '';
 
   // Handle CORS preflight
   if (method === 'OPTIONS') {
@@ -158,7 +150,8 @@ exports.handler = async (event) => {
   try {
     // ===== AUTH ROUTES (PUBLIC) =====
     if (method === 'POST' && path.includes('/auth/login')) {
-      const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+      const body =
+        typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
       const { username, password } = body || {};
 
       if (!username || !password) {
@@ -172,7 +165,9 @@ exports.handler = async (event) => {
         };
       }
 
-      const user = users.find(u => u.username === username && u.password === password);
+      const user = users.find(
+        (u) => u.username === username && u.password === password
+      );
       if (!user) {
         return {
           statusCode: 401,
@@ -229,7 +224,11 @@ exports.handler = async (event) => {
       }
     }
 
-    if (method === 'POST' && path.includes('/upload') && !path.includes('/upload/info')) {
+    if (
+      method === 'POST' &&
+      path.includes('/upload') &&
+      !path.includes('/upload/info')
+    ) {
       try {
         const parsed = await event;
 
@@ -237,17 +236,14 @@ exports.handler = async (event) => {
 
         const fileBuffer = file.content;
 
-
         const sheetName = parsed.sheetName || null;
         const result = parseExcelFile(fileBuffer, sheetName);
-
 
         return {
           statusCode: result.success ? 200 : 400,
           headers: buildHeaders(),
           body: JSON.stringify(result),
         };
-
       } catch (err) {
         return {
           statusCode: 400,
@@ -275,7 +271,8 @@ exports.handler = async (event) => {
 
     // ===== REPAIRS ROUTES =====
     if (method === 'POST' && path.includes('/repairs/save')) {
-      const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+      const body =
+        typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
       const data = body?.data;
 
       if (!data || !Array.isArray(data)) {
@@ -298,7 +295,10 @@ exports.handler = async (event) => {
         };
       }
 
-      const result = await saveRepairsToDatabase(data, authUser.username || 'system');
+      const result = await saveRepairsToDatabase(
+        data,
+        authUser.username || 'system'
+      );
       return {
         statusCode: 200,
         headers: buildHeaders(),
@@ -323,7 +323,11 @@ exports.handler = async (event) => {
         count = await getRepairCount();
       } else {
         const repairs = await getAllRepairs();
-        const filtered = filterRepairsByRegion(repairs, authUser.role, authUser.regions);
+        const filtered = filterRepairsByRegion(
+          repairs,
+          authUser.role,
+          authUser.regions
+        );
         count = filtered.length;
       }
 
@@ -365,7 +369,11 @@ exports.handler = async (event) => {
 
     if (method === 'GET' && path.includes('/repairs')) {
       const repairs = await getAllRepairs();
-      const filtered = filterRepairsByRegion(repairs, authUser.role, authUser.regions);
+      const filtered = filterRepairsByRegion(
+        repairs,
+        authUser.role,
+        authUser.regions
+      );
 
       return {
         statusCode: 200,

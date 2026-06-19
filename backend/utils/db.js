@@ -11,7 +11,7 @@ if (useDynamo) {
   function saveRepairsToDatabase(repairs) {
     try {
       const db = getDatabase();
-      
+
       let inserted = 0;
       let skipped = 0;
       const errors = [];
@@ -45,7 +45,7 @@ if (useDynamo) {
             parseFloat(repair['Service Hours']) || 0,
             repair['Availability'] || '',
             repair['Description'] || '',
-            repair['Notes'] || ''
+            repair['Notes'] || '',
           ];
 
           db.run(
@@ -68,7 +68,10 @@ if (useDynamo) {
       return { inserted, skipped, errors };
     } catch (error) {
       console.error('[Database] Save error:', error);
-      throw new Error(`Failed to save repairs: ${error.message}`);
+
+      throw new Error(`Failed to save repairs: ${error.message}`, {
+        cause: error,
+      });
     }
   }
 
@@ -80,18 +83,19 @@ if (useDynamo) {
       return result;
     } catch (error) {
       console.error('[Database] Fetch error:', error);
-      throw new Error(`Failed to fetch repairs: ${error.message}`);
+      throw new Error(`Failed to fetch repairs: ${error.message}`, {
+        cause: error,
+      });
     }
   }
 
   function getRepairById(repairId) {
     try {
       const db = getDatabase();
-      const results = db.exec(
-        'SELECT * FROM repairs WHERE repair_id = ?',
-        [repairId]
-      );
-      
+      const results = db.exec('SELECT * FROM repairs WHERE repair_id = ?', [
+        repairId,
+      ]);
+
       if (results.length === 0) return null;
       if (results[0].values.length === 0) return null;
 
@@ -104,8 +108,11 @@ if (useDynamo) {
       });
       return repair;
     } catch (error) {
-      console.error('[Database] Fetch by ID error:', error);
-      throw new Error(`Failed to fetch repair: ${error.message}`);
+      console.error('[Database] Save error:', error);
+
+      throw new Error(`Failed to save repairs: ${error.message}`, {
+        cause: error,
+      });
     }
   }
 
@@ -116,8 +123,11 @@ if (useDynamo) {
       if (result.length === 0) return 0;
       return result[0].values[0][0];
     } catch (error) {
-      console.error('[Database] Count error:', error);
-      throw new Error(`Failed to get repair count: ${error.message}`);
+      console.error('[Database] Save error:', error);
+
+      throw new Error(`Failed to save repairs: ${error.message}`, {
+        cause: error,
+      });
     }
   }
 
@@ -128,8 +138,11 @@ if (useDynamo) {
       saveDatabase();
       return true;
     } catch (error) {
-      console.error('[Database] Clear error:', error);
-      throw new Error(`Failed to clear repairs: ${error.message}`);
+      console.error('[Database] Save error:', error);
+
+      throw new Error(`Failed to save repairs: ${error.message}`, {
+        cause: error,
+      });
     }
   }
 

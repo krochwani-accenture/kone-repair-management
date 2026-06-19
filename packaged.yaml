@@ -4,9 +4,9 @@ Description: SAM template for Repairs Lambda and DynamoDB table
 Globals:
   Api:
     Cors:
-      AllowMethods: '''GET,POST,PUT,OPTIONS'''
-      AllowHeaders: '''Content-Type,Authorization'''
-      AllowOrigin: '''*'''
+      AllowMethods: "'GET,POST,PUT,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization'"
+      AllowOrigin: "'*'"
 Resources:
   RepairsTable:
     Type: AWS::DynamoDB::Table
@@ -14,11 +14,11 @@ Resources:
       TableName:
         Fn::Sub: ${AWS::StackName}-Repairs
       AttributeDefinitions:
-      - AttributeName: repair_id
-        AttributeType: S
+        - AttributeName: repair_id
+          AttributeType: S
       KeySchema:
-      - AttributeName: repair_id
-        KeyType: HASH
+        - AttributeName: repair_id
+          KeyType: HASH
       BillingMode: PAY_PER_REQUEST
     Metadata:
       SamResourceId: RepairsTable
@@ -29,16 +29,16 @@ Resources:
         Fn::Sub: ${AWS::StackName}-repair-uploads
       CorsConfiguration:
         CorsRules:
-        - AllowedOrigins:
-          - '*'
-          AllowedMethods:
-          - GET
-          - PUT
-          - POST
-          - HEAD
-          AllowedHeaders:
-          - '*'
-          MaxAge: 3000
+          - AllowedOrigins:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - HEAD
+            AllowedHeaders:
+              - '*'
+            MaxAge: 3000
     Metadata:
       SamResourceId: RepairUploadsBucket
   RepairsFunction:
@@ -55,9 +55,9 @@ Resources:
             Ref: RepairsTable
           AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
       Policies:
-      - DynamoDBCrudPolicy:
-          TableName:
-            Ref: RepairsTable
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: RepairsTable
       Events:
         ApiAuth:
           Type: Api
@@ -100,13 +100,13 @@ Resources:
             Fn::Sub: ${AWS::StackName}-repair-uploads
           AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
       Policies:
-      - Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Action:
-          - s3:PutObject
-          Resource:
-            Fn::Sub: arn:aws:s3:::${AWS::StackName}-repair-uploads/uploads/*
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource:
+                Fn::Sub: arn:aws:s3:::${AWS::StackName}-repair-uploads/uploads/*
       Events:
         ApiUploadUrl:
           Type: Api
@@ -131,16 +131,16 @@ Resources:
             Ref: RepairsTable
           AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
       Policies:
-      - DynamoDBCrudPolicy:
-          TableName:
-            Ref: RepairsTable
-      - Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Action:
-          - s3:GetObject
-          Resource:
-            Fn::Sub: arn:aws:s3:::${AWS::StackName}-repair-uploads/uploads/*
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: RepairsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource:
+                Fn::Sub: arn:aws:s3:::${AWS::StackName}-repair-uploads/uploads/*
       Events:
         UploadEvent:
           Type: S3
@@ -151,8 +151,8 @@ Resources:
             Filter:
               S3Key:
                 Rules:
-                - Name: suffix
-                  Value: .xlsx
+                  - Name: suffix
+                    Value: .xlsx
     Metadata:
       SamResourceId: RepairProcessorFunction
   StreamProcessorFunction:
@@ -168,17 +168,17 @@ Resources:
           CHANGELOG_TABLE_NAME:
             Ref: ChangeLogTable
       Policies:
-      - DynamoDBCrudPolicy:
-          TableName:
-            Ref: ChangeLogTable
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: ChangeLogTable
       Events:
         DynamoDBStream:
           Type: DynamoDB
           Properties:
             Stream:
               Fn::GetAtt:
-              - RepairsTable
-              - StreamArn
+                - RepairsTable
+                - StreamArn
             StartingPosition: TRIM_HORIZON
             BatchSize: 100
     Metadata:
@@ -189,15 +189,15 @@ Resources:
       TableName:
         Fn::Sub: ${AWS::StackName}-RepairsChangeLog
       AttributeDefinitions:
-      - AttributeName: repairId
-        AttributeType: S
-      - AttributeName: eventTimestamp
-        AttributeType: S
+        - AttributeName: repairId
+          AttributeType: S
+        - AttributeName: eventTimestamp
+          AttributeType: S
       KeySchema:
-      - AttributeName: repairId
-        KeyType: HASH
-      - AttributeName: eventTimestamp
-        KeyType: RANGE
+        - AttributeName: repairId
+          KeyType: HASH
+        - AttributeName: eventTimestamp
+          KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
       TimeToLiveSpecification:
         AttributeName: expiresAt

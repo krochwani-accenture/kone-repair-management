@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: SAM template for Repairs Lambda and DynamoDB table
 
@@ -12,7 +12,7 @@ Resources:
   RepairsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "${AWS::StackName}-Repairs"
+      TableName: !Sub '${AWS::StackName}-Repairs'
       AttributeDefinitions:
         - AttributeName: repair_id
           AttributeType: S
@@ -26,12 +26,12 @@ Resources:
   RepairUploadsBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-repair-uploads"
+      BucketName: !Sub '${AWS::StackName}-repair-uploads'
       CorsConfiguration:
         CorsRules:
-          - AllowedOrigins: ["*"]
-            AllowedMethods: ["GET", "PUT", "POST", "HEAD"]
-            AllowedHeaders: ["*"]
+          - AllowedOrigins: ['*']
+            AllowedMethods: ['GET', 'PUT', 'POST', 'HEAD']
+            AllowedHeaders: ['*']
             MaxAge: 3000
 
   RepairsFunction:
@@ -45,7 +45,7 @@ Resources:
       Environment:
         Variables:
           DYNAMO_TABLE_NAME: !Ref RepairsTable
-          AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref RepairsTable
@@ -86,15 +86,15 @@ Resources:
       Timeout: 30
       Environment:
         Variables:
-          UPLOAD_BUCKET_NAME: !Sub "${AWS::StackName}-repair-uploads"
-          AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+          UPLOAD_BUCKET_NAME: !Sub '${AWS::StackName}-repair-uploads'
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
                 - s3:PutObject
-              Resource: !Sub "arn:aws:s3:::${AWS::StackName}-repair-uploads/uploads/*"
+              Resource: !Sub 'arn:aws:s3:::${AWS::StackName}-repair-uploads/uploads/*'
       Events:
         ApiUploadUrl:
           Type: Api
@@ -112,18 +112,18 @@ Resources:
       Timeout: 60
       Environment:
         Variables:
-          UPLOAD_BUCKET_NAME: !Sub "${AWS::StackName}-repair-uploads"
+          UPLOAD_BUCKET_NAME: !Sub '${AWS::StackName}-repair-uploads'
           DYNAMO_TABLE_NAME: !Ref RepairsTable
-          AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref RepairsTable
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
                 - s3:GetObject
-              Resource: !Sub "arn:aws:s3:::${AWS::StackName}-repair-uploads/uploads/*"
+              Resource: !Sub 'arn:aws:s3:::${AWS::StackName}-repair-uploads/uploads/*'
       Events:
         UploadEvent:
           Type: S3
@@ -135,7 +135,7 @@ Resources:
                 Rules:
                   - Name: suffix
                     Value: .xlsx
-                    
+
   StreamProcessorFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -148,8 +148,8 @@ Resources:
         Variables:
           CHANGELOG_TABLE_NAME: !Ref ChangeLogTable
       Policies:
-      - DynamoDBCrudPolicy:
-          TableName: !Ref ChangeLogTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ChangeLogTable
       Events:
         DynamoDBStream:
           Type: DynamoDB
@@ -161,17 +161,17 @@ Resources:
   ChangeLogTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "${AWS::StackName}-RepairsChangeLog"
+      TableName: !Sub '${AWS::StackName}-RepairsChangeLog'
       AttributeDefinitions:
-      - AttributeName: repairId
-        AttributeType: S
-      - AttributeName: eventTimestamp
-        AttributeType: S
+        - AttributeName: repairId
+          AttributeType: S
+        - AttributeName: eventTimestamp
+          AttributeType: S
       KeySchema:
-      - AttributeName: repairId
-        KeyType: HASH
-      - AttributeName: eventTimestamp
-        KeyType: RANGE
+        - AttributeName: repairId
+          KeyType: HASH
+        - AttributeName: eventTimestamp
+          KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
       TimeToLiveSpecification:
         AttributeName: expiresAt
@@ -179,17 +179,17 @@ Resources:
 
 Outputs:
   RepairsApi:
-    Description: "Repairs API Gateway endpoint"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+    Description: 'Repairs API Gateway endpoint'
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod'
   RepairsApiAuthLogin:
-    Description: "Auth login endpoint"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/auth/login"
+    Description: 'Auth login endpoint'
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/auth/login'
   RepairsApiRepairs:
-    Description: "Repairs endpoint"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/repairs"
+    Description: 'Repairs endpoint'
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/repairs'
   RepairsUploadUrl:
-    Description: "S3 upload URL endpoint"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/upload/url"
+    Description: 'S3 upload URL endpoint'
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/upload/url'
   RepairUploadsBucketName:
-    Description: "S3 bucket for uploaded repair files"
+    Description: 'S3 bucket for uploaded repair files'
     Value: !Ref RepairUploadsBucket

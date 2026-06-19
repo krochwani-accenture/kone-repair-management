@@ -7,9 +7,9 @@ const data = [
     'Service Category': 'Maintenance',
     'Base Price': 500,
     'Service Hours': 2,
-    'Availability': 'Available',
-    'Description': 'Regular escalator maintenance',
-    'Notes': 'Includes inspection and lubrication'
+    Availability: 'Available',
+    Description: 'Regular escalator maintenance',
+    Notes: 'Includes inspection and lubrication',
   },
   {
     'Repair ID': 'RPR-002',
@@ -17,9 +17,9 @@ const data = [
     'Service Category': 'Emergency Repair',
     'Base Price': 1200,
     'Service Hours': 4,
-    'Availability': 'On-Call',
-    'Description': 'Emergency elevator repair service',
-    'Notes': '24/7 availability'
+    Availability: 'On-Call',
+    Description: 'Emergency elevator repair service',
+    Notes: '24/7 availability',
   },
   {
     'Repair ID': 'RPR-003',
@@ -27,10 +27,10 @@ const data = [
     'Service Category': 'Installation',
     'Base Price': 5000,
     'Service Hours': 16,
-    'Availability': 'Available',
-    'Description': 'New escalator installation',
-    'Notes': 'Includes testing and certification'
-  }
+    Availability: 'Available',
+    Description: 'New escalator installation',
+    Notes: 'Includes testing and certification',
+  },
 ];
 
 const ws = XLSX.utils.json_to_sheet(data);

@@ -19,7 +19,8 @@ function buildHeaders() {
 }
 
 function getAuthUser(event) {
-  const authHeader = event.headers?.authorization || event.headers?.Authorization;
+  const authHeader =
+    event.headers?.authorization || event.headers?.Authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
@@ -42,7 +43,8 @@ function getQueryStringParam(event, name) {
 
 exports.handler = async (event) => {
   const method = event.httpMethod || event.requestContext?.http?.method;
-  const path = event.rawPath || event.path || event.requestContext?.http?.path || '';
+  const path =
+    event.rawPath || event.path || event.requestContext?.http?.path || '';
 
   if (method === 'OPTIONS') {
     return {
@@ -65,7 +67,10 @@ exports.handler = async (event) => {
     return {
       statusCode: 401,
       headers: buildHeaders(),
-      body: JSON.stringify({ success: false, error: 'Missing or invalid authorization header' }),
+      body: JSON.stringify({
+        success: false,
+        error: 'Missing or invalid authorization header',
+      }),
     };
   }
 
@@ -82,7 +87,10 @@ exports.handler = async (event) => {
     return {
       statusCode: 500,
       headers: buildHeaders(),
-      body: JSON.stringify({ success: false, error: 'Upload bucket is not configured' }),
+      body: JSON.stringify({
+        success: false,
+        error: 'Upload bucket is not configured',
+      }),
     };
   }
 

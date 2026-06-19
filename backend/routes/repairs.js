@@ -5,9 +5,8 @@ const {
   getAllRepairs,
   getRepairById,
   getRepairCount,
-  clearAllRepairs
+  clearAllRepairs,
 } = require('../utils/db_dynamo');
-const { getRequestRegion } = require('../auth');
 
 /**
  * Extract region from Notes field (e.g., "Item #1 - Region: EMEA" -> "EMEA")
@@ -27,7 +26,7 @@ function filterRepairsByRegion(repairs, userRole, userRegions) {
   }
 
   const allowedRegions = userRegions || [];
-  return repairs.filter(repair => {
+  return repairs.filter((repair) => {
     const region = extractRegionFromNotes(repair.notes || '');
     return region && allowedRegions.includes(region);
   });
@@ -60,7 +59,7 @@ router.post('/save', async (req, res) => {
     // For region users, only allow saving to their region
     if (req.user.role === 'region') {
       const allowedRegion = req.user.regions[0];
-      
+
       // Verify all items belong to user's region
       for (const item of data) {
         const region = extractRegionFromNotes(item.Notes || '');
@@ -102,9 +101,13 @@ router.post('/save', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const repairs = await getAllRepairs();
-    
+
     // Apply region filtering based on user role
-    const filteredRepairs = filterRepairsByRegion(repairs, req.user.role, req.user.regions);
+    const filteredRepairs = filterRepairsByRegion(
+      repairs,
+      req.user.role,
+      req.user.regions
+    );
     const count = filteredRepairs.length;
 
     res.json({
@@ -130,13 +133,17 @@ router.get('/', async (req, res) => {
 router.get('/count/total', async (req, res) => {
   try {
     let count;
-    
+
     if (req.user.role === 'global') {
       count = await getRepairCount();
     } else {
       // For region users, filter by their regions
       const repairs = await getAllRepairs();
-      const filtered = filterRepairsByRegion(repairs, req.user.role, req.user.regions);
+      const filtered = filterRepairsByRegion(
+        repairs,
+        req.user.role,
+        req.user.regions
+      );
       count = filtered.length;
     }
 

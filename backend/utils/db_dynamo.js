@@ -1,21 +1,45 @@
 const { ddb } = require('../dynamoClient');
-const { GetCommand, ScanCommand, BatchWriteCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const {
+  GetCommand,
+  ScanCommand,
+  BatchWriteCommand,
+  UpdateCommand,
+} = require('@aws-sdk/lib-dynamodb');
 
 const TABLE = process.env.DYNAMO_TABLE_NAME || 'Repairs';
 
 // Canonical data contract for PricingManagement.xlsx.
 const PRICING_FIELDS = [
-  'category_1', 'category_2', 'category_3', 'action', 'item',
-  'translation_done', 'extended_to_sales_org', 'price_valid', 'editable_product_details',
+  'category_1',
+  'category_2',
+  'category_3',
+  'action',
+  'item',
+  'translation_done',
+  'extended_to_sales_org',
+  'price_valid',
+  'editable_product_details',
 ];
 const REQUIRED_COLUMNS = [
-  'ID', 'Category 1', 'Category 2', 'Category 3', 'Action', 'Item',
-  'Translation Done', 'Extended to Sales Org', 'Price Valid', 'Editable Product Details',
+  'ID',
+  'Category 1',
+  'Category 2',
+  'Category 3',
+  'Action',
+  'Item',
+  'Translation Done',
+  'Extended to Sales Org',
+  'Price Valid',
+  'Editable Product Details',
 ];
 
 function asBoolean(value) {
   if (typeof value === 'boolean') return value;
-  return String(value ?? '').trim().toLowerCase() === 'yes';
+  return (
+    String(value ?? '')
+      .trim()
+      .toLowerCase() === 'yes'
+  );
 }
 
 function buildPricingFields(row) {
@@ -39,15 +63,25 @@ function validatePricingRows(rows) {
   const columns = new Set(rows.flatMap((row) => Object.keys(row)));
   const missing = REQUIRED_COLUMNS.filter((column) => !columns.has(column));
   return missing.length
-    ? { valid: false, error: `Invalid pricing sheet. Missing columns: ${missing.join(', ')}` }
+    ? {
+        valid: false,
+        error: `Invalid pricing sheet. Missing columns: ${missing.join(', ')}`,
+      }
     : { valid: true };
 }
 
 function hasPricingChanges(existing, incoming) {
-  return !existing || PRICING_FIELDS.some((field) => existing[field] !== incoming[field]);
+  return (
+    !existing ||
+    PRICING_FIELDS.some((field) => existing[field] !== incoming[field])
+  );
 }
 
-async function saveRepairsToDatabase(rows, userId = 'system', source = 'excel-upload') {
+async function saveRepairsToDatabase(
+  rows,
+  userId = 'system',
+  source = 'excel-upload'
+) {
   const validation = validatePricingRows(rows);
   if (!validation.valid) throw new Error(validation.error);
 
@@ -68,10 +102,14 @@ async function saveRepairsToDatabase(rows, userId = 'system', source = 'excel-up
 
     try {
       const pricingFields = buildPricingFields(row);
-      const existing = (await ddb.send(new GetCommand({
-        TableName: TABLE,
-        Key: { repair_id: repairId },
-      }))).Item;
+      const existing = (
+        await ddb.send(
+          new GetCommand({
+            TableName: TABLE,
+            Key: { repair_id: repairId },
+          })
+        )
+      ).Item;
 
       if (!hasPricingChanges(existing, pricingFields)) {
         unchanged++;
@@ -80,29 +118,45 @@ async function saveRepairsToDatabase(rows, userId = 'system', source = 'excel-up
       }
 
       const now = new Date().toISOString();
-      await ddb.send(new UpdateCommand({
-        TableName: TABLE,
-        Key: { repair_id: repairId },
-        UpdateExpression: [
-          'SET #category_1 = :category_1', '#category_2 = :category_2', '#category_3 = :category_3',
-          '#action = :action', '#item = :item', '#translation_done = :translation_done',
-          '#extended_to_sales_org = :extended_to_sales_org', '#price_valid = :price_valid',
-          '#editable_product_details = :editable_product_details', '#userId = :userId', '#source = :source',
-          '#created_at = if_not_exists(#created_at, :now)', '#updated_at = :now',
-        ].join(', '),
-        ExpressionAttributeNames: Object.fromEntries([
-          ...PRICING_FIELDS.map((field) => [`#${field}`, field]),
-          ['#userId', 'userId'], ['#source', 'source'], ['#created_at', 'created_at'], ['#updated_at', 'updated_at'],
-        ]),
-        ExpressionAttributeValues: {
-          ...Object.fromEntries(PRICING_FIELDS.map((field) => [`:${field}`, pricingFields[field]])),
-          ':userId': userId,
-          ':source': source,
-          ':now': now,
-        },
-      }));
+      await ddb.send(
+        new UpdateCommand({
+          TableName: TABLE,
+          Key: { repair_id: repairId },
+          UpdateExpression: [
+            'SET #category_1 = :category_1',
+            '#category_2 = :category_2',
+            '#category_3 = :category_3',
+            '#action = :action',
+            '#item = :item',
+            '#translation_done = :translation_done',
+            '#extended_to_sales_org = :extended_to_sales_org',
+            '#price_valid = :price_valid',
+            '#editable_product_details = :editable_product_details',
+            '#userId = :userId',
+            '#source = :source',
+            '#created_at = if_not_exists(#created_at, :now)',
+            '#updated_at = :now',
+          ].join(', '),
+          ExpressionAttributeNames: Object.fromEntries([
+            ...PRICING_FIELDS.map((field) => [`#${field}`, field]),
+            ['#userId', 'userId'],
+            ['#source', 'source'],
+            ['#created_at', 'created_at'],
+            ['#updated_at', 'updated_at'],
+          ]),
+          ExpressionAttributeValues: {
+            ...Object.fromEntries(
+              PRICING_FIELDS.map((field) => [`:${field}`, pricingFields[field]])
+            ),
+            ':userId': userId,
+            ':source': source,
+            ':now': now,
+          },
+        })
+      );
 
-      if (existing) updated++; else inserted++;
+      if (existing) updated++;
+      else inserted++;
       saved++;
     } catch (err) {
       errors.push(`${repairId}: ${err.message || String(err)}`);
@@ -116,7 +170,9 @@ async function getAllRepairs() {
   const items = [];
   let ExclusiveStartKey;
   do {
-    const response = await ddb.send(new ScanCommand({ TableName: TABLE, ExclusiveStartKey }));
+    const response = await ddb.send(
+      new ScanCommand({ TableName: TABLE, ExclusiveStartKey })
+    );
     items.push(...(response.Items || []));
     ExclusiveStartKey = response.LastEvaluatedKey;
   } while (ExclusiveStartKey);
@@ -124,7 +180,9 @@ async function getAllRepairs() {
 }
 
 async function getRepairById(repairId) {
-  const response = await ddb.send(new GetCommand({ TableName: TABLE, Key: { repair_id: repairId } }));
+  const response = await ddb.send(
+    new GetCommand({ TableName: TABLE, Key: { repair_id: repairId } })
+  );
   return response.Item || null;
 }
 
@@ -132,7 +190,9 @@ async function getRepairCount() {
   let count = 0;
   let ExclusiveStartKey;
   do {
-    const response = await ddb.send(new ScanCommand({ TableName: TABLE, Select: 'COUNT', ExclusiveStartKey }));
+    const response = await ddb.send(
+      new ScanCommand({ TableName: TABLE, Select: 'COUNT', ExclusiveStartKey })
+    );
     count += response.Count || 0;
     ExclusiveStartKey = response.LastEvaluatedKey;
   } while (ExclusiveStartKey);
@@ -142,11 +202,15 @@ async function getRepairCount() {
 async function clearAllRepairs() {
   const items = await getAllRepairs();
   for (let i = 0; i < items.length; i += 25) {
-    await ddb.send(new BatchWriteCommand({
-      RequestItems: {
-        [TABLE]: items.slice(i, i + 25).map(({ repair_id }) => ({ DeleteRequest: { Key: { repair_id } } })),
-      },
-    }));
+    await ddb.send(
+      new BatchWriteCommand({
+        RequestItems: {
+          [TABLE]: items.slice(i, i + 25).map(({ repair_id }) => ({
+            DeleteRequest: { Key: { repair_id } },
+          })),
+        },
+      })
+    );
   }
   return items.length;
 }

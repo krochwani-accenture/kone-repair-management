@@ -32,10 +32,15 @@ exports.handler = async (event) => {
 
   if (bucket !== UPLOAD_BUCKET) {
     console.warn(`Skipping object from unexpected bucket: ${bucket}`);
-    return { statusCode: 200, body: JSON.stringify({ success: false, message: 'Bucket mismatch' }) };
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ success: false, message: 'Bucket mismatch' }),
+    };
   }
 
-  const object = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  const object = await s3.send(
+    new GetObjectCommand({ Bucket: bucket, Key: key })
+  );
   const bodyBuffer = await streamToBuffer(object.Body);
 
   const workbook = XLSX.read(bodyBuffer, { type: 'buffer' });
@@ -44,9 +49,15 @@ exports.handler = async (event) => {
   const results = [];
   let processed = 0;
   for (const sheetName of workbook.SheetNames) {
-    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+      defval: '',
+    });
     if (rows.length === 0) continue;
-    const result = await saveRepairsToDatabase(rows, 's3-processor', `s3://${bucket}/${key}#${sheetName}`);
+    const result = await saveRepairsToDatabase(
+      rows,
+      's3-processor',
+      `s3://${bucket}/${key}#${sheetName}`
+    );
     results.push({ sheetName, processed: rows.length, ...result });
     processed += rows.length;
   }

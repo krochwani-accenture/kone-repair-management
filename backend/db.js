@@ -9,7 +9,7 @@ let db = null;
 async function initializeDatabase() {
   try {
     const SQL = await initSqlJs();
-    
+
     // Try to load existing database from file
     if (fs.existsSync(dbPath)) {
       const filebuffer = fs.readFileSync(dbPath);
@@ -45,7 +45,6 @@ async function initializeDatabase() {
 
     // Save database to file
     saveDatabase();
-
   } catch (error) {
     console.error('[Database] Initialization error:', error.message);
     throw error;
