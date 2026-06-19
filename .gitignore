@@ -1,8 +1,15 @@
 # Environment variables
+.env
 .env*.local
+backend/.env
 
 # Common ignores
-node_modules
+node_modules/
 .next/
 .aws-sam/
+coverage/
+dist/
+*.db
+eslint-errors.txt
+tsconfig.tsbuildinfo
 .DS_Store

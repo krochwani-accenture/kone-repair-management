@@ -65,28 +65,24 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [uploadedData, setUploadedData] = useState<any>(null);
   const [dbData, setDbData] = useState<any>(null);
-  //const [uploadObjectKey, setUploadObjectKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
   const [tabValue, setTabValue] = useState(0);
   const [dbLoading, setDbLoading] = useState(false);
 
-  // Login dialog state
   const [loginOpen, setLoginOpen] = useState(false);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Show login dialog if not authenticated
   useEffect(() => {
     if (!auth.isLoggedIn) {
       setLoginOpen(true);
     }
   }, [auth.isLoggedIn]);
 
-  // Fetch data from database on component mount or tab change
   useEffect(() => {
     if (tabValue === 1 && auth.isLoggedIn) {
       fetchDataFromDatabase();
@@ -149,8 +145,10 @@ export default function Page() {
 
     availableSheets.forEach((name) => {
       const sheet = workbook.Sheets[name];
-      const data = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-      const columns = data.length > 0 ? Object.keys(data[0]) : [];
+      const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+        defval: '',
+      });
+      const columns = data.length > 0 ? Object.keys(data[0] ?? {}) : [];
       sheets[name] = {
         data,
         rowCount: data.length,
@@ -176,7 +174,6 @@ export default function Page() {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    //setUploadObjectKey(null);
     setUploadedData(null);
 
     try {
@@ -189,7 +186,7 @@ export default function Page() {
         headers: auth.getAuthHeader(),
       });
 
-      const { uploadUrl, objectKey } = response.data;
+      const { uploadUrl } = response.data;
       const uploadResponse = await fetch(uploadUrl, {
         method: 'PUT',
         body: file,
@@ -202,7 +199,6 @@ export default function Page() {
         throw new Error('S3 upload failed');
       }
 
-      //setUploadObjectKey(objectKey);
       setSuccess('File uploaded successfully. Preview is ready.');
       setFile(null);
       setFileName('');
@@ -224,7 +220,6 @@ export default function Page() {
     setSuccess(null);
 
     try {
-      // Flatten data from single sheet or multiple sheets
       let dataToSave: any[] = [];
 
       if (Array.isArray(uploadedData.data)) {
@@ -400,18 +395,16 @@ export default function Page() {
           </Box>
         ) : (
           <Stack spacing={3}>
-            {/* Tabs for navigation */}
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
               <Tabs
                 value={tabValue}
-                onChange={(e, newValue) => setTabValue(newValue)}
+                onChange={(_event, newValue) => setTabValue(newValue)}
               >
                 <Tab label="Upload Excel" />
                 <Tab label="View Database" />
               </Tabs>
             </Box>
 
-            {/* Error and Success Alerts */}
             {error && (
               <Alert severity="error" onClose={() => setError(null)}>
                 {error}
@@ -424,7 +417,6 @@ export default function Page() {
               </Alert>
             )}
 
-            {/* Tab 1: Upload Section */}
             <TabPanel value={tabValue} index={0}>
               <Stack spacing={3}>
                 {auth.user?.role === 'region' && (
@@ -565,7 +557,6 @@ export default function Page() {
                           )}
                         </Box>
 
-                        {/* Save to Database Button */}
                         <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
                           <Button
                             variant="contained"
@@ -625,7 +616,6 @@ export default function Page() {
               </Stack>
             </TabPanel>
 
-            {/* Tab 2: Database View */}
             <TabPanel value={tabValue} index={1}>
               <Stack spacing={3}>
                 <Box
@@ -672,7 +662,6 @@ export default function Page() {
         )}
       </Container>
 
-      {/* Login Dialog */}
       <Dialog open={loginOpen} onClose={() => {}} maxWidth="sm" fullWidth>
         <DialogTitle>Login to Repair Management System</DialogTitle>
         <DialogContent>
@@ -685,7 +674,7 @@ export default function Page() {
               value={loginUsername}
               onChange={(e) => setLoginUsername(e.target.value)}
               disabled={loginLoading}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') handleLogin();
               }}
             />
@@ -696,16 +685,16 @@ export default function Page() {
               value={loginPassword}
               onChange={(e) => setLoginPassword(e.target.value)}
               disabled={loginLoading}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') handleLogin();
               }}
             />
             <Alert severity="info">
               Demo Credentials:
               <Box sx={{ mt: 1, fontSize: '0.9em' }}>
-                <div>• admin / demo123 (Global Access)</div>
-                <div>• emea_user / demo123 (EMEA Region)</div>
-                <div>• apac_user / demo123 (APAC Region)</div>
+                <div>- admin / demo123 (Global Access)</div>
+                <div>- emea_user / demo123 (EMEA Region)</div>
+                <div>- apac_user / demo123 (APAC Region)</div>
               </Box>
             </Alert>
           </Stack>

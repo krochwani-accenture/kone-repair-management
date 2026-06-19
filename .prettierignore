@@ -1,4 +1,9 @@
 node_modules
 .next
+.aws-sam
 coverage
 dist
+*.db
+*.xlsx
+eslint-errors.txt
+tsconfig.tsbuildinfo
