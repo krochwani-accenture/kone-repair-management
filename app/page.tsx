@@ -248,7 +248,7 @@ export default function Page() {
 
       if (response.data.success) {
         setSuccess(
-          `Successfully saved! Inserted: ${response.data.data.inserted}, Skipped: ${response.data.data.skipped}`
+          `Successfully saved! Saved: ${response.data.data.saved ?? response.data.data.inserted}, Skipped: ${response.data.data.skipped}`
         );
         setUploadedData(null);
       }

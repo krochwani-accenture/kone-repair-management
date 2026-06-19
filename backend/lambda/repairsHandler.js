@@ -328,7 +328,7 @@ exports.handler = async (event) => {
         }
       }
 
-      const result = await saveRepairsToDatabase(data);
+      const result = await saveRepairsToDatabase(data, authUser.username || 'system');
       return {
         statusCode: 200,
         headers: buildHeaders(),

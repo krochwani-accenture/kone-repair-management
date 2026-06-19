@@ -1,17 +1,17 @@
 const { ddb } = require('../dynamoClient');
 const {
-  PutCommand,
   GetCommand,
   ScanCommand,
   DeleteCommand,
   BatchWriteCommand,
+  UpdateCommand,
 } = require('@aws-sdk/lib-dynamodb');
 
 const TABLE = process.env.DYNAMO_TABLE_NAME || 'Repairs';
 
 
-async function saveRepairsToDatabase(repairs) {
-  let inserted = 0;
+async function saveRepairsToDatabase(repairs, userId = 'system') {
+  let saved = 0;
   let skipped = 0;
   const errors = [];
 
@@ -23,40 +23,60 @@ async function saveRepairsToDatabase(repairs) {
         continue;
       }
 
-      const item = {
-        repair_id: r['Repair ID'],
-        equipment_type: r['Equipment Type'] || '',
-        service_category: r['Service Category'] || '',
-        base_price: Number(r['Base Price']) || 0,
-        service_hours: Number(r['Service Hours']) || 0,
-        availability: r['Availability'] || '',
-        description: r['Description'] || '',
-        notes: r['Notes'] || '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      const now = new Date().toISOString();
 
       await ddb.send(
-        new PutCommand({
+        new UpdateCommand({
           TableName: TABLE,
-          Item: item,
-          ConditionExpression: 'attribute_not_exists(repair_id)'
+          Key: { repair_id: r['Repair ID'] },
+          UpdateExpression: [
+            'SET #equipment_type = :equipment_type',
+            '#service_category = :service_category',
+            '#base_price = :base_price',
+            '#service_hours = :service_hours',
+            '#availability = :availability',
+            '#description = :description',
+            '#notes = :notes',
+            '#userId = :userId',
+            '#source = :source',
+            '#created_at = if_not_exists(#created_at, :now)',
+            '#updated_at = :now',
+          ].join(', '),
+          ExpressionAttributeNames: {
+            '#equipment_type': 'equipment_type',
+            '#service_category': 'service_category',
+            '#base_price': 'base_price',
+            '#service_hours': 'service_hours',
+            '#availability': 'availability',
+            '#description': 'description',
+            '#notes': 'notes',
+            '#userId': 'userId',
+            '#source': 'source',
+            '#created_at': 'created_at',
+            '#updated_at': 'updated_at',
+          },
+          ExpressionAttributeValues: {
+            ':equipment_type': r['Equipment Type'] || '',
+            ':service_category': r['Service Category'] || '',
+            ':base_price': Number(r['Base Price']) || 0,
+            ':service_hours': Number(r['Service Hours']) || 0,
+            ':availability': r['Availability'] || '',
+            ':description': r['Description'] || '',
+            ':notes': r['Notes'] || '',
+            ':userId': userId,
+            ':source': 'excel-upload',
+            ':now': now,
+          },
         })
       );
 
-      inserted++;
+      saved++;
     } catch (err) {
-
-      if (err && err.name === 'ConditionalCheckFailedException') {
-        skipped++;
-        continue;
-      }
-
       errors.push(err.message || String(err));
     }
   }
 
-  return { inserted, skipped, errors };
+  return { inserted: saved, saved, skipped, errors };
 }
 
 async function getAllRepairs() {
