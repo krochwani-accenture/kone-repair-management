@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -35,7 +36,7 @@ import GetAppIcon from '@mui/icons-material/GetApp';
 import LogoutIcon from '@mui/icons-material/Logout';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
-import { useAuth } from './hooks/useAuth';
+//import { useAuth } from './hooks/useAuth';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -60,7 +61,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function Page() {
-  const auth = useAuth();
+  //const auth = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploadedData, setUploadedData] = useState<any>(null);
@@ -71,44 +72,6 @@ export default function Page() {
   const [tabValue, setTabValue] = useState(0);
   const [dbLoading, setDbLoading] = useState(false);
 
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [loginUsername, setLoginUsername] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!auth.isLoggedIn) {
-      setLoginOpen(true);
-    }
-  }, [auth.isLoggedIn]);
-
-  useEffect(() => {
-    if (tabValue === 1 && auth.isLoggedIn) {
-      fetchDataFromDatabase();
-    }
-  }, [tabValue, auth.isLoggedIn]);
-
-  const handleLogin = async () => {
-    setLoginLoading(true);
-    setLoginError(null);
-
-    const result = await auth.login(loginUsername, loginPassword);
-
-    if (result.success) {
-      setLoginUsername('');
-      setLoginPassword('');
-      setLoginOpen(false);
-    } else {
-      setLoginError(result.error || 'Login failed');
-    }
-
-    setLoginLoading(false);
-  };
-
-  const handleLogout = () => {
-    auth.logout();
-  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -183,7 +146,7 @@ export default function Page() {
 
       const response = await axios.get(`${API_URL}/upload/url`, {
         params: { filename: file.name },
-        headers: auth.getAuthHeader(),
+        //headers: auth.getAuthHeader(),
       });
 
       const { uploadUrl } = response.data;
@@ -245,9 +208,6 @@ export default function Page() {
         `${REPAIRS_API_URL}/repairs/save`,
         {
           data: dataToSave,
-        },
-        {
-          headers: auth.getAuthHeader(),
         }
       );
 
@@ -271,9 +231,7 @@ export default function Page() {
     setError(null);
 
     try {
-      const response = await axios.get(`${REPAIRS_API_URL}/repairs`, {
-        headers: auth.getAuthHeader(),
-      });
+      const response = await axios.get(`${REPAIRS_API_URL}/repairs`, {});
 
       if (response.data.success) {
         setDbData(response.data);
@@ -281,8 +239,8 @@ export default function Page() {
     } catch (err: any) {
       setError(
         err.response?.data?.error ||
-          err.message ||
-          'Failed to fetch from database'
+        err.message ||
+        'Failed to fetch from database'
       );
     } finally {
       setDbLoading(false);
@@ -354,362 +312,271 @@ export default function Page() {
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
             Kone Repair Offering & Pricing Management
           </Typography>
-
-          {auth.isLoggedIn && auth.user && (
-            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-              <Chip
-                label={`${auth.user.username} (${auth.user.role})`}
-                size="small"
-                sx={{
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  color: 'white',
-                }}
-              />
-              {auth.user.role === 'region' && (
-                <Chip
-                  label={`Region: ${auth.user.regions.join(', ')}`}
-                  size="small"
-                  sx={{
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    color: 'white',
-                  }}
-                />
-              )}
-              <Button
-                color="inherit"
-                startIcon={<LogoutIcon />}
-                onClick={handleLogout}
-                sx={{ ml: 1 }}
-              >
-                Logout
-              </Button>
-            </Stack>
-          )}
         </Toolbar>
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        {!auth.isLoggedIn ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
+
+        <Stack spacing={3}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+              value={tabValue}
+              onChange={(_event, newValue) => setTabValue(newValue)}
+            >
+              <Tab label="Upload Excel" />
+              <Tab label="View Database" />
+            </Tabs>
           </Box>
-        ) : (
-          <Stack spacing={3}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-              <Tabs
-                value={tabValue}
-                onChange={(_event, newValue) => setTabValue(newValue)}
-              >
-                <Tab label="Upload Excel" />
-                <Tab label="View Database" />
-              </Tabs>
-            </Box>
 
-            {error && (
-              <Alert severity="error" onClose={() => setError(null)}>
-                {error}
-              </Alert>
-            )}
+          {error && (
+            <Alert severity="error" onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
 
-            {success && (
-              <Alert severity="success" onClose={() => setSuccess(null)}>
-                {success}
-              </Alert>
-            )}
+          {success && (
+            <Alert severity="success" onClose={() => setSuccess(null)}>
+              {success}
+            </Alert>
+          )}
 
-            <TabPanel value={tabValue} index={0}>
-              <Stack spacing={3}>
-                {auth.user?.role === 'region' && (
-                  <Alert severity="info">
-                    You are logged in as a region user. You can only save
-                    repairs for region:{' '}
-                    <strong>{auth.user.regions.join(', ')}</strong>
-                  </Alert>
-                )}
-                <Card elevation={2}>
-                  <CardContent>
-                    <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
-                      Upload Repair Data
-                    </Typography>
+          <TabPanel value={tabValue} index={0}>
+            <Stack spacing={3}>
+              <Card elevation={2}>
+                <CardContent>
+                  <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
+                    Upload Repair Data
+                  </Typography>
 
-                    <Stack spacing={2}>
-                      <Box
-                        sx={{
-                          border: '2px dashed #1976d2',
-                          borderRadius: 2,
-                          p: 3,
-                          textAlign: 'center',
-                          backgroundColor: '#f5f5f5',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            backgroundColor: '#e3f2fd',
-                            borderColor: '#0d47a1',
-                          },
+                  <Stack spacing={2}>
+                    <Box
+                      sx={{
+                        border: '2px dashed #1976d2',
+                        borderRadius: 2,
+                        p: 3,
+                        textAlign: 'center',
+                        backgroundColor: '#f5f5f5',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: '#e3f2fd',
+                          borderColor: '#0d47a1',
+                        },
+                      }}
+                    >
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleFileChange}
+                        style={{ display: 'none' }}
+                        id="file-input"
+                      />
+                      <label
+                        htmlFor="file-input"
+                        style={{ cursor: 'pointer', display: 'block' }}
+                      >
+                        <CloudUploadIcon
+                          sx={{ fontSize: 48, color: '#1976d2', mb: 1 }}
+                        />
+                        <Typography variant="body1" sx={{ mb: 1 }}>
+                          {fileName ||
+                            'Click to select an Excel file or drag and drop'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#666' }}>
+                          Supported formats: .xlsx, .xls
+                        </Typography>
+                      </label>
+                    </Box>
+
+                    <Stack
+                      direction="row"
+                      spacing={2}
+                      style={{ justifyContent: 'flex-end' }}
+                    >
+                      <Button
+                        variant="outlined"
+                        onClick={() => {
+                          setFile(null);
+                          setFileName('');
+                          setError(null);
                         }}
                       >
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls"
-                          onChange={handleFileChange}
-                          style={{ display: 'none' }}
-                          id="file-input"
-                        />
-                        <label
-                          htmlFor="file-input"
-                          style={{ cursor: 'pointer', display: 'block' }}
-                        >
-                          <CloudUploadIcon
-                            sx={{ fontSize: 48, color: '#1976d2', mb: 1 }}
-                          />
-                          <Typography variant="body1" sx={{ mb: 1 }}>
-                            {fileName ||
-                              'Click to select an Excel file or drag and drop'}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: '#666' }}>
-                            Supported formats: .xlsx, .xls
-                          </Typography>
-                        </label>
+                        Clear
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={handleUpload}
+                        disabled={!file || loading}
+                        sx={{ minWidth: 150 }}
+                      >
+                        {loading ? (
+                          <CircularProgress size={24} />
+                        ) : (
+                          'Upload File'
+                        )}
+                      </Button>
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
+
+              {uploadedData &&
+                uploadedData.success &&
+                (uploadedData.data || uploadedData.sheets) && (
+                  <Card elevation={2}>
+                    <CardContent>
+                      <Typography
+                        variant="h5"
+                        sx={{ mb: 2, fontWeight: 'bold' }}
+                      >
+                        Repair Data Preview
+                      </Typography>
+
+                      <Box sx={{ mb: 3 }}>
+                        {uploadedData && uploadedData.sheets ? (
+                          <>
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ mb: 1 }}
+                            >
+                              Total Records:{' '}
+                              <strong>{uploadedData.totalRowCount}</strong>
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary">
+                              Sheets:{' '}
+                              <strong>
+                                {(
+                                  uploadedData.availableSheets ||
+                                  Object.keys(uploadedData.sheets)
+                                ).join(', ')}
+                              </strong>
+                            </Typography>
+                          </>
+                        ) : (
+                          <>
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ mb: 1 }}
+                            >
+                              Total Records:{' '}
+                              <strong>{uploadedData.rowCount}</strong>
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary">
+                              Columns:{' '}
+                              <strong>
+                                {uploadedData.columns.join(', ')}
+                              </strong>
+                            </Typography>
+                          </>
+                        )}
                       </Box>
 
-                      <Stack
-                        direction="row"
-                        spacing={2}
-                        style={{ justifyContent: 'flex-end' }}
-                      >
-                        <Button
-                          variant="outlined"
-                          onClick={() => {
-                            setFile(null);
-                            setFileName('');
-                            setError(null);
-                          }}
-                        >
-                          Clear
-                        </Button>
+                      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
                         <Button
                           variant="contained"
-                          onClick={handleUpload}
-                          disabled={!file || loading}
-                          sx={{ minWidth: 150 }}
+                          color="success"
+                          startIcon={<SaveIcon />}
+                          onClick={handleSaveToDatabase}
+                          disabled={loading}
                         >
                           {loading ? (
                             <CircularProgress size={24} />
                           ) : (
-                            'Upload File'
+                            'Save to Database'
                           )}
                         </Button>
                       </Stack>
-                    </Stack>
-                  </CardContent>
-                </Card>
 
-                {uploadedData &&
-                  uploadedData.success &&
-                  (uploadedData.data || uploadedData.sheets) && (
-                    <Card elevation={2}>
-                      <CardContent>
-                        <Typography
-                          variant="h5"
-                          sx={{ mb: 2, fontWeight: 'bold' }}
-                        >
-                          Repair Data Preview
-                        </Typography>
-
-                        <Box sx={{ mb: 3 }}>
-                          {uploadedData && uploadedData.sheets ? (
-                            <>
-                              <Typography
-                                variant="body2"
-                                color="textSecondary"
-                                sx={{ mb: 1 }}
-                              >
-                                Total Records:{' '}
-                                <strong>{uploadedData.totalRowCount}</strong>
-                              </Typography>
-                              <Typography variant="body2" color="textSecondary">
-                                Sheets:{' '}
-                                <strong>
-                                  {(
-                                    uploadedData.availableSheets ||
-                                    Object.keys(uploadedData.sheets)
-                                  ).join(', ')}
-                                </strong>
-                              </Typography>
-                            </>
-                          ) : (
-                            <>
-                              <Typography
-                                variant="body2"
-                                color="textSecondary"
-                                sx={{ mb: 1 }}
-                              >
-                                Total Records:{' '}
-                                <strong>{uploadedData.rowCount}</strong>
-                              </Typography>
-                              <Typography variant="body2" color="textSecondary">
-                                Columns:{' '}
-                                <strong>
-                                  {uploadedData.columns.join(', ')}
-                                </strong>
-                              </Typography>
-                            </>
-                          )}
-                        </Box>
-
-                        <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-                          <Button
-                            variant="contained"
-                            color="success"
-                            startIcon={<SaveIcon />}
-                            onClick={handleSaveToDatabase}
-                            disabled={loading}
-                          >
-                            {loading ? (
-                              <CircularProgress size={24} />
-                            ) : (
-                              'Save to Database'
-                            )}
-                          </Button>
-                        </Stack>
-
-                        {(() => {
-                          if (uploadedData && uploadedData.sheets) {
-                            const sheetNames =
-                              uploadedData.availableSheets &&
+                      {(() => {
+                        if (uploadedData && uploadedData.sheets) {
+                          const sheetNames =
+                            uploadedData.availableSheets &&
                               uploadedData.availableSheets.length
-                                ? uploadedData.availableSheets
-                                : Object.keys(uploadedData.sheets);
+                              ? uploadedData.availableSheets
+                              : Object.keys(uploadedData.sheets);
 
-                            const mergedData: any[] = [];
-                            const columnsSet = new Set<string>();
+                          const mergedData: any[] = [];
+                          const columnsSet = new Set<string>();
 
-                            sheetNames.forEach((name: string) => {
-                              const sheet = uploadedData.sheets[name];
-                              if (sheet && Array.isArray(sheet.data)) {
-                                sheet.data.forEach((row: any) => {
-                                  mergedData.push(row);
-                                  Object.keys(row).forEach((key) =>
-                                    columnsSet.add(key)
-                                  );
-                                });
-                              }
-                            });
+                          sheetNames.forEach((name: string) => {
+                            const sheet = uploadedData.sheets[name];
+                            if (sheet && Array.isArray(sheet.data)) {
+                              sheet.data.forEach((row: any) => {
+                                mergedData.push(row);
+                                Object.keys(row).forEach((key) =>
+                                  columnsSet.add(key)
+                                );
+                              });
+                            }
+                          });
 
-                            const mergedColumns = Array.from(columnsSet);
-                            return renderDataTable(
-                              mergedData,
-                              mergedColumns,
-                              'Excel Data Preview'
-                            );
-                          }
-
+                          const mergedColumns = Array.from(columnsSet);
                           return renderDataTable(
-                            uploadedData.data,
-                            uploadedData.columns,
+                            mergedData,
+                            mergedColumns,
                             'Excel Data Preview'
                           );
-                        })()}
-                      </CardContent>
-                    </Card>
-                  )}
-              </Stack>
-            </TabPanel>
+                        }
 
-            <TabPanel value={tabValue} index={1}>
-              <Stack spacing={3}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+                        return renderDataTable(
+                          uploadedData.data,
+                          uploadedData.columns,
+                          'Excel Data Preview'
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                )}
+            </Stack>
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={1}>
+            <Stack spacing={3}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  Database Records
+                </Typography>
+                <Button
+                  variant="outlined"
+                  startIcon={<GetAppIcon />}
+                  onClick={fetchDataFromDatabase}
+                  disabled={dbLoading}
                 >
-                  <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                    Database Records
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    startIcon={<GetAppIcon />}
-                    onClick={fetchDataFromDatabase}
-                    disabled={dbLoading}
-                  >
-                    {dbLoading ? <CircularProgress size={24} /> : 'Refresh'}
-                  </Button>
-                </Box>
-
-                {dbLoading && !dbData ? (
-                  <Box
-                    sx={{ display: 'flex', justifyContent: 'center', py: 4 }}
-                  >
-                    <CircularProgress />
-                  </Box>
-                ) : dbData &&
-                  dbData.success &&
-                  Array.isArray(dbData.data) &&
-                  dbData.data.length > 0 ? (
-                  renderDataTable(
-                    dbData.data,
-                    Object.keys(dbData.data[0]),
-                    'Database Records'
-                  )
-                ) : dbData && dbData.success ? (
-                  <Alert severity="info">No records found in database</Alert>
-                ) : null}
-              </Stack>
-            </TabPanel>
-          </Stack>
-        )}
-      </Container>
-
-      <Dialog open={loginOpen} onClose={() => {}} maxWidth="sm" fullWidth>
-        <DialogTitle>Login to Repair Management System</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 2 }}>
-            {loginError && <Alert severity="error">{loginError}</Alert>}
-            <TextField
-              fullWidth
-              label="Username"
-              type="text"
-              value={loginUsername}
-              onChange={(e) => setLoginUsername(e.target.value)}
-              disabled={loginLoading}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleLogin();
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              disabled={loginLoading}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleLogin();
-              }}
-            />
-            <Alert severity="info">
-              Demo Credentials:
-              <Box sx={{ mt: 1, fontSize: '0.9em' }}>
-                <div>- admin / demo123 (Global Access)</div>
-                <div>- emea_user / demo123 (EMEA Region)</div>
-                <div>- apac_user / demo123 (APAC Region)</div>
+                  {dbLoading ? <CircularProgress size={24} /> : 'Refresh'}
+                </Button>
               </Box>
-            </Alert>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleLogin}
-            variant="contained"
-            disabled={!loginUsername || !loginPassword || loginLoading}
-            fullWidth
-          >
-            {loginLoading ? <CircularProgress size={24} /> : 'Login'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+
+              {dbLoading && !dbData ? (
+                <Box
+                  sx={{ display: 'flex', justifyContent: 'center', py: 4 }}
+                >
+                  <CircularProgress />
+                </Box>
+              ) : dbData &&
+                dbData.success &&
+                Array.isArray(dbData.data) &&
+                dbData.data.length > 0 ? (
+                renderDataTable(
+                  dbData.data,
+                  Object.keys(dbData.data[0]),
+                  'Database Records'
+                )
+              ) : dbData && dbData.success ? (
+                <Alert severity="info">No records found in database</Alert>
+              ) : null}
+            </Stack>
+          </TabPanel>
+        </Stack>
+
+      </Container>
     </>
   );
 }
