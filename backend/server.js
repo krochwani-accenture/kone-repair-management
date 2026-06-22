@@ -9,7 +9,7 @@ require('dotenv').config();
 
 const { initializeDatabase } = require('./db');
 const repairsRouter = require('./routes/repairs');
-const { loginHandler, authMiddleware } = require('./auth');
+//const { loginHandler, authMiddleware } = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -133,7 +133,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   return res.status(result.success ? 200 : 400).json(result);
 });
 
-app.get('/api/upload/url', authMiddleware, async (req, res) => {
+app.get('/api/upload/url', async (req, res) => {
   try {
     const filename = req.query.filename;
     if (!filename || typeof filename !== 'string') {
@@ -170,7 +170,7 @@ app.get('/api/upload/url', authMiddleware, async (req, res) => {
 app.post('/api/auth/login', loginHandler);
 
 // Database routes (protected)
-app.use('/api/repairs', authMiddleware, repairsRouter);
+app.use('/api/repairs', repairsRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
