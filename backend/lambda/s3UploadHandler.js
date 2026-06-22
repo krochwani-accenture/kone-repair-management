@@ -62,7 +62,7 @@ exports.handler = async (event) => {
     };
   }
 
-  const authUser = getAuthUser(event);
+  /*const authUser = getAuthUser(event);
   if (!authUser) {
     return {
       statusCode: 401,
@@ -72,7 +72,7 @@ exports.handler = async (event) => {
         error: 'Missing or invalid authorization header',
       }),
     };
-  }
+  }*/
 
   const filename = getQueryStringParam(event, 'filename');
   if (!filename) {

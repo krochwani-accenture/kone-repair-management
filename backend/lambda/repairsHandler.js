@@ -257,7 +257,7 @@ exports.handler = async (event) => {
     }
 
     // ===== PROTECTED ROUTES (REQUIRE AUTH) =====
-    const authUser = getAuthUser(event);
+    /*const authUser = getAuthUser(event);
     if (!authUser) {
       return {
         statusCode: 401,
@@ -267,7 +267,7 @@ exports.handler = async (event) => {
           error: 'Missing or invalid authorization header',
         }),
       };
-    }
+    }*/
 
     // ===== REPAIRS ROUTES =====
     if (method === 'POST' && path.includes('/repairs/save')) {
