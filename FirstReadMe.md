@@ -11,6 +11,9 @@ https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/p
 Installing the AWS CLI.
 https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html?utm_source=chatgpt.com
 
+
+winget install Amazon.SAM-CLI
+
 Configuring AWS credentials.
 ask team members
 
@@ -27,6 +30,7 @@ NODE_ENV=development
 AWS_REGION=ap-south-2
 UPLOAD_BUCKET_NAME=kone-repairs-stack-repair-uploads
 JWT_SECRET=your-secret
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 //---------------------------------------------------
 
@@ -39,6 +43,16 @@ cd backend
 npm run dev
 
 //---------------------------------------------------
+aws configure
+
+AWS Access Key ID [****************TNX2]:
+AWS Secret Access Key [****************5q0r]: 
+Default region name [ap-south-2]: ap-south-2
+Default output format [None]: json
+
+
+//---------------------------------------------------
+
 sam deploy --guided
 
 # Configuring SAM deploy
