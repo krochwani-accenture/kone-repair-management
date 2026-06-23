@@ -121,7 +121,6 @@ export default function Page() {
             <ManageOfferPanel
               rows={tableRows}
               uploadedRows={uploadedRows}
-              uploadedData={upload.uploadedData}
               dbLoading={database.dbLoading}
               onSaveToDatabase={handleSaveToDatabase}
             />
