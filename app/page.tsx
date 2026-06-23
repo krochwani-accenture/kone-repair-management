@@ -1,12 +1,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   CircularProgress,
   Stack,
   Typography,
@@ -19,21 +17,25 @@ import {
   TableRow,
   Paper,
   Container,
-  AppBar,
-  Toolbar,
   Tabs,
   Tab,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  IconButton,
+  InputAdornment,
+  MenuItem,
+  Select,
   TextField,
+  Tooltip,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SaveIcon from '@mui/icons-material/Save';
-import GetAppIcon from '@mui/icons-material/GetApp';
-import LogoutIcon from '@mui/icons-material/Logout';
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
+import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import SwapVertOutlinedIcon from '@mui/icons-material/SwapVertOutlined';
+import KeyboardArrowDownOutlinedIcon from '@mui/icons-material/KeyboardArrowDownOutlined';
+import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 //import { useAuth } from './hooks/useAuth';
@@ -56,8 +58,52 @@ function TabPanel(props: TabPanelProps) {
   const { children, value, index } = props;
   return (
     <div hidden={value !== index} style={{ width: '100%' }}>
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+      {value === index && <Box>{children}</Box>}
     </div>
+  );
+}
+
+const appNavItems = ['Manage Offer', 'Manage price', 'Differentiate price'];
+
+const compactButtonSx = {
+  height: 32,
+  borderRadius: '16px',
+  px: 1.5,
+  fontSize: 12,
+  fontWeight: 700,
+  textTransform: 'none',
+};
+
+const statusPalette = [
+  { label: 'Completed', color: '#17bf63' },
+  { label: 'Pending', color: '#9aa0a6' },
+  { label: 'In-progress', color: '#fb8500' },
+  { label: 'Error', color: '#dc2626' },
+];
+
+function getStatus(index: number) {
+  return statusPalette[index % statusPalette.length];
+}
+
+function StatusCell({ index }: { index: number }) {
+  const status = getStatus(index);
+
+  return (
+    <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+      <Box
+        component="span"
+        sx={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          backgroundColor: status.color,
+          flex: '0 0 auto',
+        }}
+      />
+      <Typography sx={{ fontSize: 12, color: '#1f2933' }}>
+        {status.label}
+      </Typography>
+    </Stack>
   );
 }
 
@@ -255,34 +301,100 @@ export default function Page() {
     }
   };
 
-  const renderDataTable = (data: any[], columns: string[], title: string) => (
-    <Card elevation={2}>
-      <CardContent>
-        <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
-          {title}
-        </Typography>
+  const renderDataTable = (data: any[], columns: string[]) => {
+    const sourceColumns = columns.slice(0, 6);
+    const headers = [
+      'Repair ID',
+      'Category 1',
+      'Category 2',
+      'Category 3',
+      'English (EN)',
+      'Netherland (NL)',
+    ];
 
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="textSecondary">
-            Total Records: <strong>{data.length}</strong>
-          </Typography>
-        </Box>
-
-        <TableContainer
-          component={Paper}
-          sx={{ maxHeight: 600, overflow: 'auto' }}
-        >
-          <Table stickyHeader>
+    return (
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 0,
+          borderTop: '1px solid #c9ced6',
+          backgroundColor: 'transparent',
+          overflow: 'hidden',
+        }}
+      >
+        <TableContainer sx={{ maxHeight: 'calc(100vh - 220px)' }}>
+          <Table stickyHeader size="small" sx={{ tableLayout: 'fixed' }}>
             <TableHead>
-              <TableRow sx={{ backgroundColor: '#1976d2' }}>
-                {columns.map((column: string) => (
+              <TableRow>
+                {headers.map((column, index) => (
                   <TableCell
                     key={column}
                     sx={{
-                      fontWeight: 'bold',
-                      backgroundColor: '#1976d2',
-                      color: 'white',
-                      minWidth: 120,
+                      width: index === 0 ? 95 : 128,
+                      py: 1.1,
+                      px: 2,
+                      backgroundColor: '#f8f9fb',
+                      borderBottom: '1px solid #bfc5ce',
+                      color: '#151a22',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      sx={{ alignItems: 'center' }}
+                    >
+                      <span>{column}</span>
+                      {index > 0 && index < 4 && (
+                        <SwapVertOutlinedIcon sx={{ fontSize: 15 }} />
+                      )}
+                    </Stack>
+                  </TableCell>
+                ))}
+
+                {['Extended to sales org', 'Translation done', 'Price valid'].map(
+                  (column) => (
+                    <TableCell
+                      key={column}
+                      sx={{
+                        width: 118,
+                        py: 1.1,
+                        px: 2,
+                        backgroundColor: '#f8f9fb',
+                        borderBottom: '1px solid #bfc5ce',
+                        color: '#151a22',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        sx={{ alignItems: 'center' }}
+                      >
+                        <span>{column}</span>
+                        <FilterAltOutlinedIcon sx={{ fontSize: 14 }} />
+                      </Stack>
+                    </TableCell>
+                  )
+                )}
+
+                {['Edit', 'Delete'].map((column) => (
+                  <TableCell
+                    key={column}
+                    align="center"
+                    sx={{
+                      width: 64,
+                      py: 1.1,
+                      px: 1,
+                      backgroundColor: '#f8f9fb',
+                      borderBottom: '1px solid #bfc5ce',
+                      color: '#151a22',
+                      fontSize: 11,
+                      fontWeight: 700,
                     }}
                   >
                     {column}
@@ -290,51 +402,382 @@ export default function Page() {
                 ))}
               </TableRow>
             </TableHead>
+
             <TableBody>
               {data.map((row: any, index: number) => (
                 <TableRow
                   key={index}
                   sx={{
-                    '&:hover': { backgroundColor: '#f5f5f5' },
-                    backgroundColor: index % 2 === 0 ? '#fafafa' : 'white',
+                    height: 45,
+                    backgroundColor: index % 2 === 0 ? '#ffffff' : '#f6f7f9',
+                    '&:hover': { backgroundColor: '#eef4ff' },
                   }}
                 >
-                  {columns.map((column: string) => (
-                    <TableCell key={`${index}-${column}`}>
-                      {String(row[column] || '-')}
-                    </TableCell>
-                  ))}
+                  {headers.map((header, columnIndex) => {
+                    const sourceColumn = sourceColumns[columnIndex];
+                    const value = sourceColumn ? row[sourceColumn] : '';
+
+                    return (
+                      <TableCell
+                        key={`${index}-${header}`}
+                        sx={{
+                          px: 2,
+                          py: 1,
+                          borderBottom: '1px solid #dfe3e8',
+                          color: '#252b35',
+                          fontSize: 12,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {String(value || '-')}
+                      </TableCell>
+                    );
+                  })}
+
+                  <TableCell sx={{ borderBottom: '1px solid #dfe3e8' }}>
+                    <StatusCell index={index} />
+                  </TableCell>
+                  <TableCell sx={{ borderBottom: '1px solid #dfe3e8' }}>
+                    <StatusCell index={index} />
+                  </TableCell>
+                  <TableCell sx={{ borderBottom: '1px solid #dfe3e8' }}>
+                    <StatusCell index={index} />
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ borderBottom: '1px solid #dfe3e8', px: 1 }}
+                  >
+                    <Tooltip title="Edit">
+                      <IconButton size="small" sx={{ color: '#111827' }}>
+                        <EditOutlinedIcon sx={{ fontSize: 17 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ borderBottom: '1px solid #dfe3e8', px: 1 }}
+                  >
+                    <Tooltip title="Delete">
+                      <IconButton size="small" sx={{ color: '#111827' }}>
+                        <DeleteOutlineOutlinedIcon sx={{ fontSize: 17 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
-      </CardContent>
-    </Card>
-  );
+
+        <Stack
+          direction="row"
+          sx={{
+            minHeight: 56,
+            px: 2,
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderTop: '1px solid #e2e6ea',
+          }}
+        >
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <Typography sx={{ fontSize: 12, color: '#68717d' }}>
+              Rows per page
+            </Typography>
+            <Select
+              value={30}
+              size="small"
+              IconComponent={KeyboardArrowDownOutlinedIcon}
+              sx={{
+                height: 32,
+                minWidth: 58,
+                borderRadius: '6px',
+                fontSize: 12,
+                backgroundColor: '#fff',
+              }}
+            >
+              <MenuItem value={30}>30</MenuItem>
+            </Select>
+          </Stack>
+
+          <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+            <Typography sx={{ fontSize: 12, color: '#0057ff' }}>1</Typography>
+            <Typography sx={{ fontSize: 12 }}>2</Typography>
+            <Typography sx={{ fontSize: 12 }}>3</Typography>
+            <Typography sx={{ fontSize: 12 }}>4</Typography>
+            <Typography sx={{ fontSize: 12 }}>5</Typography>
+            <Typography sx={{ fontSize: 12, color: '#68717d' }}>...</Typography>
+            <Typography sx={{ fontSize: 12 }}>10</Typography>
+          </Stack>
+        </Stack>
+      </Paper>
+    );
+  };
+
+  const uploadedRows =
+    uploadedData?.sheets && uploadedData.availableSheets
+      ? uploadedData.availableSheets.flatMap(
+          (name: string) => uploadedData.sheets[name]?.data ?? []
+        )
+      : Array.isArray(uploadedData?.data)
+        ? uploadedData.data
+        : [];
+
+  const uploadedColumns: string[] =
+    uploadedRows.length > 0
+      ? (Array.from(
+          uploadedRows.reduce((keys: Set<string>, row: any) => {
+            Object.keys(row).forEach((key) => keys.add(key));
+            return keys;
+          }, new Set<string>())
+        ) as string[])
+      : [];
+
+  const databaseRows =
+    dbData?.success && Array.isArray(dbData.data) ? dbData.data : [];
+  const tableRows = uploadedRows.length > 0 ? uploadedRows : databaseRows;
+  const tableColumns: string[] =
+    uploadedColumns.length > 0
+      ? uploadedColumns
+      : databaseRows.length > 0
+        ? Object.keys(databaseRows[0])
+        : [];
 
   return (
-    <>
-      <AppBar position="static" sx={{ backgroundColor: '#1976d2' }}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-            Kone Repair Offering & Pricing Management
-          </Typography>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-
-        <Stack spacing={3}>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs
-              value={tabValue}
-              onChange={(_event, newValue) => setTabValue(newValue)}
-            >
-              <Tab label="Upload Excel" />
-              <Tab label="View Database" />
-            </Tabs>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
+      <Box
+        component="header"
+        sx={{
+          height: 48,
+          backgroundColor: '#fff',
+          borderBottom: '3px solid #0057ff',
+          display: 'flex',
+          alignItems: 'center',
+          px: 1.25,
+        }}
+      >
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              width: 66,
+              height: 26,
+              backgroundColor: '#0057ff',
+              color: '#fff',
+              border: '1px solid #0057ff',
+            }}
+          >
+            {['K', 'O', 'N', 'E'].map((letter) => (
+              <Box
+                key={letter}
+                sx={{
+                  display: 'grid',
+                  placeItems: 'center',
+                  borderRight: letter === 'E' ? 0 : '1px solid #fff',
+                  fontSize: 15,
+                  fontWeight: 800,
+                  lineHeight: 1,
+                }}
+              >
+                {letter}
+              </Box>
+            ))}
           </Box>
+          <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
+            Kone repairs
+          </Typography>
+        </Stack>
+
+        <Tabs
+          value={tabValue}
+          onChange={(_event, newValue) => {
+            setTabValue(newValue);
+            if (newValue === 1) {
+              fetchDataFromDatabase();
+            }
+          }}
+          sx={{
+            ml: 4,
+            minHeight: 45,
+            '& .MuiTabs-indicator': {
+              height: 3,
+              backgroundColor: '#0057ff',
+            },
+            '& .MuiTab-root': {
+              minHeight: 45,
+              px: 2,
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#111827',
+              textTransform: 'none',
+            },
+            '& .Mui-selected': {
+              color: '#0057ff !important',
+            },
+          }}
+        >
+          {appNavItems.map((item) => (
+            <Tab key={item} label={item} />
+          ))}
+        </Tabs>
+
+        <Tooltip title="Profile">
+          <IconButton
+            size="small"
+            sx={{
+              ml: 'auto',
+              width: 30,
+              height: 30,
+              borderRadius: '4px',
+              border: '1px dashed #0057ff',
+              color: '#0057ff',
+            }}
+          >
+            <PersonOutlineOutlinedIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      <Container maxWidth={false} sx={{ px: 2, py: 2 }}>
+        <Stack spacing={2}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={2}
+            sx={{
+              alignItems: { xs: 'stretch', md: 'center' },
+              justifyContent: 'space-between',
+            }}
+          >
+            <Typography sx={{ fontSize: 22, fontWeight: 500, color: '#111' }}>
+              Manage offer
+            </Typography>
+
+            <Stack
+              direction="row"
+              spacing={2}
+              sx={{
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                justifyContent: { xs: 'flex-start', md: 'flex-end' },
+              }}
+            >
+              <Button
+                variant="text"
+                startIcon={<FilterAltOutlinedIcon sx={{ fontSize: 15 }} />}
+                sx={{
+                  ...compactButtonSx,
+                  backgroundColor: '#eef4ff',
+                  color: '#0057ff',
+                  '&:hover': { backgroundColor: '#e1ebff' },
+                }}
+              >
+                Filter
+              </Button>
+
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+                id="figma-file-input"
+              />
+              <Button
+                component="label"
+                htmlFor="figma-file-input"
+                variant="text"
+                startIcon={<FileUploadOutlinedIcon sx={{ fontSize: 15 }} />}
+                sx={{
+                  ...compactButtonSx,
+                  backgroundColor: '#eef4ff',
+                  color: '#0057ff',
+                  '&:hover': { backgroundColor: '#e1ebff' },
+                }}
+              >
+                Upload
+              </Button>
+
+              <Select
+                value="Netherland"
+                size="small"
+                IconComponent={KeyboardArrowDownOutlinedIcon}
+                sx={{
+                  height: 32,
+                  minWidth: 150,
+                  borderRadius: '7px',
+                  backgroundColor: '#fff',
+                  fontSize: 12,
+                  color: '#68717d',
+                }}
+              >
+                <MenuItem value="Netherland">Netherland</MenuItem>
+              </Select>
+
+              <TextField
+                size="small"
+                placeholder="Search"
+                sx={{
+                  width: 170,
+                  '& .MuiOutlinedInput-root': {
+                    height: 32,
+                    borderRadius: '16px',
+                    backgroundColor: '#fff',
+                    fontSize: 12,
+                    pr: 0.5,
+                  },
+                }}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <SearchOutlinedIcon sx={{ fontSize: 17 }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            </Stack>
+          </Stack>
+
+          {fileName && (
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1}
+              sx={{ alignItems: { xs: 'stretch', sm: 'center' } }}
+            >
+              <Typography sx={{ fontSize: 12, color: '#68717d' }}>
+                Selected file: <strong>{fileName}</strong>
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={handleUpload}
+                disabled={!file || loading}
+                startIcon={
+                  loading ? <CircularProgress size={14} /> : <CloudUploadIcon />
+                }
+                sx={{
+                  ...compactButtonSx,
+                  borderRadius: '7px',
+                  width: 118,
+                  backgroundColor: '#0057ff',
+                }}
+              >
+                Load
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setFile(null);
+                  setFileName('');
+                  setError(null);
+                }}
+                sx={{ ...compactButtonSx, borderRadius: '7px', width: 86 }}
+              >
+                Clear
+              </Button>
+            </Stack>
+          )}
 
           {error && (
             <Alert severity="error" onClose={() => setError(null)}>
@@ -349,243 +792,94 @@ export default function Page() {
           )}
 
           <TabPanel value={tabValue} index={0}>
-            <Stack spacing={3}>
-              <Card elevation={2}>
-                <CardContent>
-                  <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
-                    Upload Repair Data
-                  </Typography>
-
-
-                  <Stack spacing={2}>
-                    <Box
-                      sx={{
-                        border: '2px dashed #1976d2',
-                        borderRadius: 2,
-                        p: 3,
-                        textAlign: 'center',
-                        backgroundColor: '#f5f5f5',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          backgroundColor: '#e3f2fd',
-                          borderColor: '#0d47a1',
-                        },
-                      }}
+            {tableRows.length > 0 ? (
+              <Stack spacing={1.5}>
+                {uploadedRows.length > 0 && (
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      startIcon={
+                        loading ? <CircularProgress size={14} /> : <SaveIcon />
+                      }
+                      onClick={handleSaveToDatabase}
+                      disabled={loading}
+                      sx={{ ...compactButtonSx, borderRadius: '7px' }}
                     >
-                      <input
-                        type="file"
-                        accept=".xlsx,.xls"
-                        onChange={handleFileChange}
-                        style={{ display: 'none' }}
-                        id="file-input"
-                      />
-                      <label
-                        htmlFor="file-input"
-                        style={{ cursor: 'pointer', display: 'block' }}
-                      >
-                        <CloudUploadIcon
-                          sx={{ fontSize: 48, color: '#1976d2', mb: 1 }}
-                        />
-                        <Typography variant="body1" sx={{ mb: 1 }}>
-                          {fileName ||
-                            'Click to select an Excel file or drag and drop'}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#666' }}>
-                          Supported formats: .xlsx, .xls
-                        </Typography>
-                      </label>
-                    </Box>
-
-                    <Stack
-                      direction="row"
-                      spacing={2}
-                      style={{ justifyContent: 'flex-end' }}
-                    >
-                      <Button
-                        variant="outlined"
-                        onClick={() => {
-                          setFile(null);
-                          setFileName('');
-                          setError(null);
-                        }}
-                      >
-                        Clear
-                      </Button>
-                      <Button
-                        variant="contained"
-                        onClick={handleUpload}
-                        disabled={!file || loading}
-                        sx={{ minWidth: 150 }}
-                      >
-                        {loading ? (
-                          <CircularProgress size={24} />
-                        ) : (
-                          'Upload File'
-                        )}
-                      </Button>
-                    </Stack>
+                      Save to Database
+                    </Button>
+                    <Typography sx={{ fontSize: 12, color: '#68717d' }}>
+                      {uploadedRows.length} uploaded rows ready
+                    </Typography>
                   </Stack>
-                </CardContent>
-              </Card>
-
-              {uploadedData &&
-                uploadedData.success &&
-                (uploadedData.data || uploadedData.sheets) && (
-                  <Card elevation={2}>
-                    <CardContent>
-                      <Typography
-                        variant="h5"
-                        sx={{ mb: 2, fontWeight: 'bold' }}
-                      >
-                        Repair Data Preview
-                      </Typography>
-
-                      <Box sx={{ mb: 3 }}>
-                        {uploadedData && uploadedData.sheets ? (
-                          <>
-                            <Typography
-                              variant="body2"
-                              color="textSecondary"
-                              sx={{ mb: 1 }}
-                            >
-                              Total Records:{' '}
-                              <strong>{uploadedData.totalRowCount}</strong>
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              Sheets:{' '}
-                              <strong>
-                                {(
-                                  uploadedData.availableSheets ||
-                                  Object.keys(uploadedData.sheets)
-                                ).join(', ')}
-                              </strong>
-                            </Typography>
-                          </>
-                        ) : (
-                          <>
-                            <Typography
-                              variant="body2"
-                              color="textSecondary"
-                              sx={{ mb: 1 }}
-                            >
-                              Total Records:{' '}
-                              <strong>{uploadedData.rowCount}</strong>
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              Columns:{' '}
-                              <strong>
-                                {uploadedData.columns.join(', ')}
-                              </strong>
-                            </Typography>
-                          </>
-                        )}
-                      </Box>
-
-                      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-                        <Button
-                          variant="contained"
-                          color="success"
-                          startIcon={<SaveIcon />}
-                          onClick={handleSaveToDatabase}
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <CircularProgress size={24} />
-                          ) : (
-                            'Save to Database'
-                          )}
-                        </Button>
-                      </Stack>
-
-                      {(() => {
-                        if (uploadedData && uploadedData.sheets) {
-                          const sheetNames =
-                            uploadedData.availableSheets &&
-                              uploadedData.availableSheets.length
-                              ? uploadedData.availableSheets
-                              : Object.keys(uploadedData.sheets);
-
-                          const mergedData: any[] = [];
-                          const columnsSet = new Set<string>();
-
-                          sheetNames.forEach((name: string) => {
-                            const sheet = uploadedData.sheets[name];
-                            if (sheet && Array.isArray(sheet.data)) {
-                              sheet.data.forEach((row: any) => {
-                                mergedData.push(row);
-                                Object.keys(row).forEach((key) =>
-                                  columnsSet.add(key)
-                                );
-                              });
-                            }
-                          });
-
-                          const mergedColumns = Array.from(columnsSet);
-                          return renderDataTable(
-                            mergedData,
-                            mergedColumns,
-                            'Excel Data Preview'
-                          );
-                        }
-
-                        return renderDataTable(
-                          uploadedData.data,
-                          uploadedData.columns,
-                          'Excel Data Preview'
-                        );
-                      })()}
-                    </CardContent>
-                  </Card>
                 )}
-            </Stack>
+                {renderDataTable(tableRows, tableColumns)}
+              </Stack>
+            ) : (
+              <Paper
+                elevation={0}
+                sx={{
+                  display: 'grid',
+                  placeItems: 'center',
+                  minHeight: 430,
+                  borderRadius: 0,
+                  border: '1px dashed #b9c2d0',
+                  backgroundColor: '#fff',
+                }}
+              >
+                <Stack spacing={2} sx={{ alignItems: 'center' }}>
+                  <CloudUploadIcon sx={{ fontSize: 48, color: '#0057ff' }} />
+                  <Typography sx={{ fontSize: 14, color: '#111827' }}>
+                    Select an Excel file with the Upload action.
+                  </Typography>
+                </Stack>
+              </Paper>
+            )}
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-            <Stack spacing={3}>
-              <Box
+            <Stack spacing={1.5}>
+              <Button
+                variant="text"
+                onClick={fetchDataFromDatabase}
+                disabled={dbLoading}
+                startIcon={
+                  dbLoading ? (
+                    <CircularProgress size={14} />
+                  ) : (
+                    <FilterAltOutlinedIcon />
+                  )
+                }
                 sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
+                  ...compactButtonSx,
+                  alignSelf: 'flex-start',
+                  backgroundColor: '#eef4ff',
+                  color: '#0057ff',
                 }}
               >
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                  Database Records
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<GetAppIcon />}
-                  onClick={fetchDataFromDatabase}
-                  disabled={dbLoading}
-                >
-                  {dbLoading ? <CircularProgress size={24} /> : 'Refresh'}
-                </Button>
-              </Box>
-
-              {dbLoading && !dbData ? (
-                <Box
-                  sx={{ display: 'flex', justifyContent: 'center', py: 4 }}
-                >
+                Refresh
+              </Button>
+              {databaseRows.length > 0 ? (
+                renderDataTable(databaseRows, tableColumns)
+              ) : dbLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
                   <CircularProgress />
                 </Box>
-              ) : dbData &&
-                dbData.success &&
-                Array.isArray(dbData.data) &&
-                dbData.data.length > 0 ? (
-                renderDataTable(
-                  dbData.data,
-                  Object.keys(dbData.data[0]),
-                  'Database Records'
-                )
-              ) : dbData && dbData.success ? (
+              ) : (
                 <Alert severity="info">No records found in database</Alert>
-              ) : null}
+              )}
             </Stack>
           </TabPanel>
-        </Stack>
 
+          <TabPanel value={tabValue} index={2}>
+            {tableRows.length > 0 ? (
+              renderDataTable(tableRows, tableColumns)
+            ) : (
+              <Alert severity="info">No records available yet.</Alert>
+            )}
+          </TabPanel>
+        </Stack>
       </Container>
-    </>
+    </Box>
   );
 }
