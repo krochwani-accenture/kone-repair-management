@@ -28,10 +28,11 @@ import { compactButtonSx } from "../lib/constants";
 interface ToolbarActionsProps {
     onFilterClick?: () => void;
     onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-    onSearchChange?: (value: string) => void;
+    searchValue: string;
+    onSearchChange: (value: string) => void;
 }
 
-export function ToolbarActions({ onFileChange }: ToolbarActionsProps) {
+export function ToolbarActions({ onFileChange, searchValue, onSearchChange }: ToolbarActionsProps) {
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -111,6 +112,8 @@ export function ToolbarActions({ onFileChange }: ToolbarActionsProps) {
             <TextField
                 size="small"
                 placeholder="Search"
+                value={searchValue}
+                onChange={(e) => onSearchChange(e.target.value)}
                 sx={{
                     width: 170,
                     "& .MuiOutlinedInput-root": {
@@ -138,7 +141,7 @@ export function ToolbarActions({ onFileChange }: ToolbarActionsProps) {
                 onClose={handleCancel}
                 maxWidth="xs"
                 fullWidth
-                PaperProps={{ sx: { borderRadius: "12px" } }}
+                slotProps={{ paper: { sx: { borderRadius: "12px" } } }}
             >
                 <DialogTitle
                     sx={{

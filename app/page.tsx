@@ -15,6 +15,7 @@ import { collectAllRows } from "../lib/excelParser";
 
 export default function Page() {
   const [tabValue, setTabValue] = useState(0);
+  const [searchValue, setSearchValue] = useState("");
 
   const upload = useFileUpload();
   const database = useDatabase();
@@ -81,7 +82,11 @@ export default function Page() {
                 },
               }}
             >
-              <ToolbarActions onFileChange={upload.handleFileChange} />
+              <ToolbarActions
+                onFileChange={upload.handleFileChange}
+                searchValue={searchValue}
+                onSearchChange={setSearchValue}
+              />
             </Stack>
           </Stack>
 
@@ -123,12 +128,13 @@ export default function Page() {
               uploadedRows={uploadedRows}
               dbLoading={database.dbLoading}
               onSaveToDatabase={handleSaveToDatabase}
+              searchQuery={searchValue}
             />
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
             <ManagePricePanel
-              rows={databaseRows}
+              rows={tableRows}
               dbLoading={database.dbLoading}
               onRefresh={database.fetchDataFromDatabase}
             />

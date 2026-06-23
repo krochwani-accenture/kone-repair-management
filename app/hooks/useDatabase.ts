@@ -15,7 +15,7 @@ export function useDatabase() {
         setError(null);
 
         try {
-            const response = await axios.get(`${REPAIRS_API_URL}/repairs`, {});
+            const response = await axios.get(`${REPAIRS_API_URL}/repairs/save`, {});
 
             if (response.data.success) {
                 setDbData(response.data);

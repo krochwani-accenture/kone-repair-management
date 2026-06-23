@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Stack,
     Button,
@@ -23,6 +23,7 @@ interface ManageOfferPanelProps {
     uploadedRows: any[];
     dbLoading: boolean;
     onSaveToDatabase: () => void;
+    searchQuery?: string;
 }
 
 export function ManageOfferPanel({
@@ -30,14 +31,12 @@ export function ManageOfferPanel({
     uploadedRows,
     dbLoading,
     onSaveToDatabase,
+    searchQuery,
 }: ManageOfferPanelProps) {
     const [view, setView] = useState<"table" | "accordion">("table");
 
-    if (rows.length === 0) {
-        return <EmptyState />;
-    }
-
     return (
+
         <Stack spacing={1.5}>
             {/* Toolbar row */}
             <Stack
@@ -111,11 +110,14 @@ export function ManageOfferPanel({
             </Stack>
 
             {/* Content */}
-            {view === "table" ? (
-                <DataTable rows={rows} />
+            {uploadedRows.length === 0 && rows.length === 0 ? (
+                <EmptyState />
+            ) : view === "table" ? (
+                <DataTable rows={rows} searchQuery={searchQuery} />
             ) : (
-                <AccordionTable rows={rows} />
+                <AccordionTable rows={rows} searchQuery={searchQuery} />
             )}
+
         </Stack>
     );
 }

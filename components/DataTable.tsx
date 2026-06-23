@@ -1,10 +1,14 @@
 "use client";
 
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
     Box,
+    Checkbox,
+    FormControlLabel,
     IconButton,
     MenuItem,
     Paper,
+    Popper,
     Select,
     Stack,
     Table,
@@ -17,14 +21,20 @@ import {
     Typography,
 } from "@mui/material";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import SwapVertOutlinedIcon from "@mui/icons-material/SwapVertOutlined";
+import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
+import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
 import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { StatusCell } from "./StatusCell";
+import { statusPalette } from "../lib/constants";
 
 interface DataTableProps {
     rows: any[];
+    searchQuery?: string;
 }
 
 const sourceColumns = [
@@ -50,15 +60,16 @@ const staticHeaders = [
     "Delete",
 ];
 
+const sortableColumnIndices = new Set([1, 2, 3]);
+const filterColumnIndices = new Set([6, 7, 8]);
+const statusOptions = statusPalette.map((s) => s.label);
+
+type SortDirection = "asc" | "desc" | null;
+
 function getHeaderSx(index: number, label: string) {
-    const widths: Record<number, number> = {
-        0: 95,
-        9: 64,
-        10: 64,
-    };
+    const widths: Record<number, number> = { 0: 95, 9: 64, 10: 64 };
     const w = widths[index] ?? (index >= 6 && index <= 8 ? 118 : 128);
     const isAction = label === "Edit" || label === "Delete";
-
     return {
         width: w,
         py: 1.1,
@@ -73,7 +84,145 @@ function getHeaderSx(index: number, label: string) {
     };
 }
 
-export function DataTable({ rows }: DataTableProps) {
+function getSortIcon(direction: SortDirection) {
+    if (direction === "asc") return <ArrowUpwardOutlinedIcon sx={{ fontSize: 15, color: "#0057ff" }} />;
+    if (direction === "desc") return <ArrowDownwardOutlinedIcon sx={{ fontSize: 15, color: "#0057ff" }} />;
+    return <SwapVertOutlinedIcon sx={{ fontSize: 15, color: "#68717d" }} />;
+}
+
+function getPageNumbers(current: number, total: number): (number | string)[] {
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    const pages: (number | string)[] = [];
+    const range = 2;
+    const start = Math.max(1, current - range);
+    const end = Math.min(total, current + range);
+
+    if (start > 1) {
+        pages.push(1);
+        if (start > 2) pages.push("...");
+    }
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < total) {
+        if (end < total - 1) pages.push("...");
+        pages.push(total);
+    }
+    return pages;
+}
+
+export function DataTable({ rows, searchQuery }: DataTableProps) {
+    const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+    const [filteredStatuses, setFilteredStatuses] = useState<string[]>([]);
+    const [sortColumn, setSortColumn] = useState<string | null>(null);
+    const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(30);
+
+    // Reset to page 0 when rows change (e.g. global search filtering)
+    useEffect(() => {
+        setPage(0);
+    }, [rows.length]);
+
+    const isFilterOpen = anchorEl !== null;
+    const hasActiveFilter = filteredStatuses.length > 0;
+
+    const handleFilterClick = useCallback(
+        (e: React.MouseEvent<HTMLButtonElement>) => {
+            if (isFilterOpen) {
+                setAnchorEl(null);
+                setFilteredStatuses([]);
+            } else {
+                setAnchorEl(e.currentTarget);
+                setFilteredStatuses([]);
+            }
+        },
+        [isFilterOpen]
+    );
+
+    const handleToggle = useCallback((status: string) => {
+        setFilteredStatuses((prev) => {
+            if (prev.indexOf(status) >= 0) {
+                return prev.filter((s) => s !== status);
+            }
+            return [...prev, status];
+        });
+    }, []);
+
+    const handleClear = useCallback(() => {
+        setAnchorEl(null);
+        setFilteredStatuses([]);
+    }, []);
+
+    const handleSort = useCallback(
+        (columnName: string) => {
+            if (sortColumn === columnName) {
+                if (sortDirection === "asc") {
+                    setSortDirection("desc");
+                } else if (sortDirection === "desc") {
+                    setSortColumn(null);
+                    setSortDirection(null);
+                }
+            } else {
+                setSortColumn(columnName);
+                setSortDirection("asc");
+            }
+        },
+        [sortColumn, sortDirection]
+    );
+
+    const filteredRows = useMemo(() => {
+        let result = rows.map((row: any, i: number) => {
+            // Augment with computed status label so search can match "completed", "pending", etc.
+            const statusLabel = statusPalette[i % statusPalette.length].label;
+            return { row, originalIndex: i, _statusLabel: statusLabel };
+        });
+
+        // Apply global search filter
+        if (searchQuery && searchQuery.trim()) {
+            const lowerQuery = searchQuery.trim().toLowerCase();
+            result = result.filter(({ row, _statusLabel }) => {
+                try {
+                    // Include status label in the searchable text
+                    const searchText = JSON.stringify(row) + " " + _statusLabel;
+                    return searchText.toLowerCase().includes(lowerQuery);
+                } catch {
+                    return false;
+                }
+            });
+        }
+
+        // Apply status filter
+        if (isFilterOpen && filteredStatuses.length > 0) {
+            result = result.filter(({ originalIndex }) => {
+                const status = statusPalette[originalIndex % statusPalette.length];
+                return filteredStatuses.indexOf(status.label) >= 0;
+            });
+        }
+
+        // Apply sort
+        if (sortColumn && sortDirection) {
+            result = [...result].sort((a, b) => {
+                const valA = String(a.row[sortColumn] ?? "").toLowerCase();
+                const valB = String(b.row[sortColumn] ?? "").toLowerCase();
+                if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+                if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+                return 0;
+            });
+        }
+
+        return result;
+    }, [rows, searchQuery, isFilterOpen, filteredStatuses, sortColumn, sortDirection]);
+
+    const visibleRows = useMemo(() => {
+        const start = page * rowsPerPage;
+        return filteredRows.slice(start, start + rowsPerPage);
+    }, [filteredRows, page, rowsPerPage]);
+
+    const totalCount = filteredRows.length;
+    const totalPages = Math.ceil(totalCount / rowsPerPage);
+    const pageNumbers = getPageNumbers(page + 1, totalPages);
+
     return (
         <Paper
             elevation={0}
@@ -88,92 +237,188 @@ export function DataTable({ rows }: DataTableProps) {
                 <Table stickyHeader size="small" sx={{ tableLayout: "fixed" }}>
                     <TableHead>
                         <TableRow>
-                            {staticHeaders.map((column, index) => (
-                                <TableCell key={column} sx={getHeaderSx(index, column)}>
-                                    <Stack
-                                        direction="row"
-                                        spacing={0.5}
-                                        sx={{ alignItems: "center", justifyContent: column === "Edit" || column === "Delete" ? "center" : "flex-start" }}
-                                    >
-                                        <span>{column}</span>
-                                        {index > 0 && index < 4 && (
-                                            <SwapVertOutlinedIcon sx={{ fontSize: 15 }} />
-                                        )}
-                                        {index >= 6 && index <= 8 && (
-                                            <FilterAltOutlinedIcon sx={{ fontSize: 14 }} />
-                                        )}
-                                    </Stack>
-                                </TableCell>
-                            ))}
-                        </TableRow>
-                    </TableHead>
-
-                    <TableBody>
-                        {rows.map((row: any, index: number) => (
-                            <TableRow
-                                key={index}
-                                sx={{
-                                    height: 45,
-                                    backgroundColor: index % 2 === 0 ? "#ffffff" : "#f6f7f9",
-                                    "&:hover": { backgroundColor: "#eef4ff" },
-                                }}
-                            >
-                                {sourceColumns.map((header, columnIndex) => {
-                                    const value = row[header] ?? "-";
-                                    return (
-                                        <TableCell
-                                            key={`${index}-${header}`}
+                            {staticHeaders.map((column, index) => {
+                                const colName = sourceColumns[index] || column;
+                                const sortDir = sortColumn === colName ? sortDirection : null;
+                                return (
+                                    <TableCell key={column} sx={getHeaderSx(index, column)}>
+                                        <Stack
+                                            direction="row"
+                                            spacing={0.5}
                                             sx={{
-                                                px: 2,
-                                                py: 1,
-                                                borderBottom: "1px solid #dfe3e8",
-                                                color: "#252b35",
-                                                fontSize: 12,
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                whiteSpace: "nowrap",
+                                                alignItems: "center",
+                                                justifyContent:
+                                                    column === "Edit" || column === "Delete"
+                                                        ? "center"
+                                                        : "flex-start",
                                             }}
                                         >
-                                            {String(value)}
-                                        </TableCell>
-                                    );
-                                })}
-
-                                {[0, 1, 2].map((i) => (
-                                    <TableCell
-                                        key={`status-${index}-${i}`}
-                                        sx={{ borderBottom: "1px solid #dfe3e8" }}
-                                    >
-                                        <StatusCell index={index} />
+                                            <span>{column}</span>
+                                            {sortableColumnIndices.has(index) && (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleSort(colName)}
+                                                    sx={{
+                                                        p: 0.25,
+                                                        borderRadius: "4px",
+                                                        backgroundColor: sortDir
+                                                            ? "#dce8ff"
+                                                            : "transparent",
+                                                    }}
+                                                >
+                                                    {getSortIcon(sortDir)}
+                                                </IconButton>
+                                            )}
+                                            {filterColumnIndices.has(index) && (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={handleFilterClick}
+                                                    sx={{
+                                                        p: 0.25,
+                                                        color: isFilterOpen ? "#0057ff" : "inherit",
+                                                        backgroundColor: isFilterOpen ? "#dce8ff" : "transparent",
+                                                        borderRadius: "4px",
+                                                    }}
+                                                >
+                                                    <FilterAltOutlinedIcon sx={{ fontSize: 14 }} />
+                                                </IconButton>
+                                            )}
+                                        </Stack>
                                     </TableCell>
-                                ))}
-
+                                );
+                            })}
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {totalCount === 0 ? (
+                            <TableRow>
                                 <TableCell
-                                    align="center"
-                                    sx={{ borderBottom: "1px solid #dfe3e8", px: 1 }}
+                                    colSpan={staticHeaders.length}
+                                    sx={{ textAlign: "center", py: 6, color: "#68717d", fontSize: 13 }}
                                 >
-                                    <Tooltip title="Edit">
-                                        <IconButton size="small" sx={{ color: "#111827" }}>
-                                            <EditOutlinedIcon sx={{ fontSize: 17 }} />
-                                        </IconButton>
-                                    </Tooltip>
-                                </TableCell>
-                                <TableCell
-                                    align="center"
-                                    sx={{ borderBottom: "1px solid #dfe3e8", px: 1 }}
-                                >
-                                    <Tooltip title="Delete">
-                                        <IconButton size="small" sx={{ color: "#111827" }}>
-                                            <DeleteOutlineOutlinedIcon sx={{ fontSize: 17 }} />
-                                        </IconButton>
-                                    </Tooltip>
+                                    {isFilterOpen && hasActiveFilter
+                                        ? "No rows match the filter criteria."
+                                        : "No data available."}
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        ) : (
+                            visibleRows.map(({ row, originalIndex }, vi) => (
+                                <TableRow
+                                    key={`${originalIndex}-${row["Repair ID"] || originalIndex}`}
+                                    sx={{
+                                        height: 45,
+                                        backgroundColor: vi % 2 === 0 ? "#ffffff" : "#f6f7f9",
+                                        "&:hover": { backgroundColor: "#eef4ff" },
+                                    }}
+                                >
+                                    {sourceColumns.map((header) => {
+                                        const value = row[header] ?? "-";
+                                        return (
+                                            <TableCell
+                                                key={header}
+                                                sx={{
+                                                    px: 2,
+                                                    py: 1,
+                                                    borderBottom: "1px solid #dfe3e8",
+                                                    color: "#252b35",
+                                                    fontSize: 12,
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis",
+                                                    whiteSpace: "nowrap",
+                                                }}
+                                            >
+                                                {String(value)}
+                                            </TableCell>
+                                        );
+                                    })}
+                                    {[0, 1, 2].map((i) => (
+                                        <TableCell key={`status-${i}`} sx={{ borderBottom: "1px solid #dfe3e8" }}>
+                                            <StatusCell index={originalIndex} />
+                                        </TableCell>
+                                    ))}
+                                    <TableCell align="center" sx={{ borderBottom: "1px solid #dfe3e8", px: 1 }}>
+                                        <Tooltip title="Edit">
+                                            <IconButton size="small" sx={{ color: "#111827" }}>
+                                                <EditOutlinedIcon sx={{ fontSize: 17 }} />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </TableCell>
+                                    <TableCell align="center" sx={{ borderBottom: "1px solid #dfe3e8", px: 1 }}>
+                                        <Tooltip title="Delete">
+                                            <IconButton size="small" sx={{ color: "#111827" }}>
+                                                <DeleteOutlineOutlinedIcon sx={{ fontSize: 17 }} />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
                     </TableBody>
                 </Table>
             </TableContainer>
 
+            {/* Filter dropdown */}
+            <Popper
+                open={isFilterOpen}
+                anchorEl={anchorEl}
+                placement="bottom-start"
+                sx={{ zIndex: 1300 }}
+            >
+                <Paper
+                    elevation={4}
+                    sx={{
+                        mt: 0.5,
+                        minWidth: 180,
+                        border: "1px solid #dfe3e8",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                    }}
+                >
+                    <Stack direction="row" sx={{ px: 1.5, py: 0.75, alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #eef0f2" }}>
+                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#68717d", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            Filter by status
+                        </Typography>
+                        <IconButton size="small" onClick={handleClear} sx={{ p: 0.25 }}>
+                            <CloseOutlinedIcon sx={{ fontSize: 14, color: "#68717d" }} />
+                        </IconButton>
+                    </Stack>
+                    <Box sx={{ px: 0.5, py: 0.5 }}>
+                        {statusOptions.map((status) => {
+                            const paletteItem = statusPalette.find((s) => s.label === status)!;
+                            const checked = filteredStatuses.indexOf(status) >= 0;
+                            return (
+                                <FormControlLabel
+                                    key={status}
+                                    control={
+                                        <Checkbox
+                                            size="small"
+                                            checked={checked}
+                                            onChange={() => handleToggle(status)}
+                                            sx={{ py: 0.25, "&.Mui-checked": { color: paletteItem.color } }}
+                                        />
+                                    }
+                                    label={
+                                        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+                                            <Box component="span" sx={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: paletteItem.color, flex: "0 0 auto" }} />
+                                            <Typography sx={{ fontSize: 12, color: "#1f2933" }}>{status}</Typography>
+                                        </Stack>
+                                    }
+                                    sx={{ mx: 0, width: "100%", "& .MuiFormControlLabel-label": { width: "100%" } }}
+                                />
+                            );
+                        })}
+                    </Box>
+                    {hasActiveFilter && (
+                        <Stack direction="row" sx={{ px: 1.5, py: 0.75, borderTop: "1px solid #eef0f2", justifyContent: "center" }}>
+                            <Typography onClick={handleClear} sx={{ fontSize: 11, fontWeight: 600, color: "#0057ff", cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
+                                Clear filter
+                            </Typography>
+                        </Stack>
+                    )}
+                </Paper>
+            </Popper>
+
+            {/* Pagination */}
             <Stack
                 direction="row"
                 sx={{
@@ -185,33 +430,45 @@ export function DataTable({ rows }: DataTableProps) {
                 }}
             >
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                    <Typography sx={{ fontSize: 12, color: "#68717d" }}>
-                        Rows per page
-                    </Typography>
+                    <Typography sx={{ fontSize: 12, color: "#68717d" }}>Rows per page</Typography>
                     <Select
-                        value={30}
+                        value={rowsPerPage}
                         size="small"
-                        IconComponent={KeyboardArrowDownOutlinedIcon}
-                        sx={{
-                            height: 32,
-                            minWidth: 58,
-                            borderRadius: "6px",
-                            fontSize: 12,
-                            backgroundColor: "#fff",
+                        onChange={(e) => {
+                            setRowsPerPage(Number(e.target.value));
+                            setPage(0);
                         }}
+                        IconComponent={KeyboardArrowDownOutlinedIcon}
+                        sx={{ height: 32, minWidth: 58, borderRadius: "6px", fontSize: 12, backgroundColor: "#fff" }}
                     >
                         <MenuItem value={30}>30</MenuItem>
+                        <MenuItem value={50}>50</MenuItem>
+                        <MenuItem value={100}>100</MenuItem>
                     </Select>
                 </Stack>
 
-                <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                    <Typography sx={{ fontSize: 12, color: "#0057ff" }}>1</Typography>
-                    <Typography sx={{ fontSize: 12 }}>2</Typography>
-                    <Typography sx={{ fontSize: 12 }}>3</Typography>
-                    <Typography sx={{ fontSize: 12 }}>4</Typography>
-                    <Typography sx={{ fontSize: 12 }}>5</Typography>
-                    <Typography sx={{ fontSize: 12, color: "#68717d" }}>...</Typography>
-                    <Typography sx={{ fontSize: 12 }}>10</Typography>
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                    {pageNumbers.map((p, idx) =>
+                        typeof p === "number" ? (
+                            <Typography
+                                key={p}
+                                onClick={() => setPage(p - 1)}
+                                sx={{
+                                    fontSize: 12,
+                                    color: p === page + 1 ? "#0057ff" : "#68717d",
+                                    fontWeight: p === page + 1 ? 700 : 400,
+                                    cursor: "pointer",
+                                    "&:hover": { textDecoration: p !== page + 1 ? "underline" : "none" },
+                                }}
+                            >
+                                {p}
+                            </Typography>
+                        ) : (
+                            <Typography key={`e-${idx}`} sx={{ fontSize: 12, color: "#68717d" }}>
+                                ...
+                            </Typography>
+                        )
+                    )}
                 </Stack>
             </Stack>
         </Paper>
