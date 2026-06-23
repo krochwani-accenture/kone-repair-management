@@ -43,6 +43,7 @@ const API_URL =
     ? `${window.location.origin}/api`
     : 'http://localhost:5000/api');
 const REPAIRS_API_URL = process.env.NEXT_PUBLIC_REPAIRS_API_URL || API_URL;
+const AUTH_BYPASSED = true;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -78,13 +79,14 @@ export default function Page() {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!auth.isLoggedIn) {
+    // Auth bypassed so users land directly on the upload page.
+    if (!AUTH_BYPASSED && !auth.isLoggedIn) {
       setLoginOpen(true);
     }
   }, [auth.isLoggedIn]);
 
   useEffect(() => {
-    if (tabValue === 1 && auth.isLoggedIn) {
+    if (tabValue === 1 && (AUTH_BYPASSED || auth.isLoggedIn)) {
       fetchDataFromDatabase();
     }
   }, [tabValue, auth.isLoggedIn]);
@@ -180,6 +182,13 @@ export default function Page() {
       const fileBuffer = await readFileAsArrayBuffer(file);
       const parsed = parseExcelSheets(fileBuffer);
       setUploadedData(parsed);
+
+      if (AUTH_BYPASSED && !auth.isLoggedIn) {
+        setSuccess('File loaded successfully. Preview is ready.');
+        setFile(null);
+        setFileName('');
+        return;
+      }
 
       const response = await axios.get(`${API_URL}/upload/url`, {
         params: { filename: file.name },
@@ -389,7 +398,7 @@ export default function Page() {
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        {!auth.isLoggedIn ? (
+        {!AUTH_BYPASSED && !auth.isLoggedIn ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress />
           </Box>
