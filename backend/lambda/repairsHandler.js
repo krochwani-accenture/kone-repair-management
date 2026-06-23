@@ -28,30 +28,6 @@ function createToken(user) {
 }
 
 /**
- * Filter repairs by region
- */
-function filterRepairsByRegion(repairs) {
-  return repairs;
-}
-
-/**
- * Parse auth header and return user
- */
-function getAuthUser(event) {
-  const authHeader =
-    event.headers?.authorization || event.headers?.Authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-  try {
-    const token = authHeader.slice(7);
-    return jwt.verify(token, SECRET);
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Build CORS headers
  */
 function buildHeaders() {

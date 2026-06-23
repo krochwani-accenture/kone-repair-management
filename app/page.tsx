@@ -73,48 +73,6 @@ export default function Page() {
   const [tabValue, setTabValue] = useState(0);
   const [dbLoading, setDbLoading] = useState(false);
 
-<<<<<<< HEAD
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [loginUsername, setLoginUsername] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Auth bypassed so users land directly on the upload page.
-    if (!AUTH_BYPASSED && !auth.isLoggedIn) {
-      setLoginOpen(true);
-    }
-  }, [auth.isLoggedIn]);
-
-  useEffect(() => {
-    if (tabValue === 1 && (AUTH_BYPASSED || auth.isLoggedIn)) {
-      fetchDataFromDatabase();
-    }
-  }, [tabValue, auth.isLoggedIn]);
-
-  const handleLogin = async () => {
-    setLoginLoading(true);
-    setLoginError(null);
-
-    const result = await auth.login(loginUsername, loginPassword);
-
-    if (result.success) {
-      setLoginUsername('');
-      setLoginPassword('');
-      setLoginOpen(false);
-    } else {
-      setLoginError(result.error || 'Login failed');
-    }
-
-    setLoginLoading(false);
-  };
-
-  const handleLogout = () => {
-    auth.logout();
-  };
-=======
->>>>>>> 2b115a82299bd899ca9b352c112d8377f4378cf3
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -187,7 +145,7 @@ export default function Page() {
       const parsed = parseExcelSheets(fileBuffer);
       setUploadedData(parsed);
 
-      if (AUTH_BYPASSED && !auth.isLoggedIn) {
+      if (AUTH_BYPASSED) {
         setSuccess('File loaded successfully. Preview is ready.');
         setFile(null);
         setFileName('');
@@ -366,11 +324,6 @@ export default function Page() {
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
-<<<<<<< HEAD
-        {!AUTH_BYPASSED && !auth.isLoggedIn ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
-=======
 
         <Stack spacing={3}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -381,7 +334,6 @@ export default function Page() {
               <Tab label="Upload Excel" />
               <Tab label="View Database" />
             </Tabs>
->>>>>>> 2b115a82299bd899ca9b352c112d8377f4378cf3
           </Box>
 
           {error && (

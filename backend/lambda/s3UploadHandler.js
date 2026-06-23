@@ -1,8 +1,6 @@
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const jwt = require('jsonwebtoken');
 
-const SECRET = process.env.JWT_SECRET || 'demo-secret-key';
 const REGION = process.env.AWS_REGION || 'ap-south-2';
 const UPLOAD_BUCKET = process.env.UPLOAD_BUCKET_NAME;
 
@@ -16,20 +14,6 @@ function buildHeaders() {
     'Access-Control-Allow-Headers': 'Content-Type,Authorization',
     'Access-Control-Allow-Credentials': 'false',
   };
-}
-
-function getAuthUser(event) {
-  const authHeader =
-    event.headers?.authorization || event.headers?.Authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-  try {
-    const token = authHeader.slice(7);
-    return jwt.verify(token, SECRET);
-  } catch {
-    return null;
-  }
 }
 
 function getQueryStringParam(event, name) {
