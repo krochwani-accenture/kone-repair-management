@@ -67,7 +67,7 @@ function loginHandler(req, res) {
 /**
  * Auth middleware - verify JWT and attach user to req
  */
-function authMiddleware(req, res, next) {
+/*function authMiddleware(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
 
@@ -89,7 +89,7 @@ function authMiddleware(req, res, next) {
       error: 'Invalid or expired token',
     });
   }
-}
+}*/
 
 /**
  * Region access check middleware
@@ -131,7 +131,7 @@ function getRequestRegion(req) {
 module.exports = {
   createToken,
   loginHandler,
-  authMiddleware,
+  //authMiddleware,
   checkRegionAccess,
   getRequestRegion,
 };

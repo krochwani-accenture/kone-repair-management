@@ -257,7 +257,7 @@ exports.handler = async (event) => {
     }
 
     // ===== PROTECTED ROUTES (REQUIRE AUTH) =====
-    const authUser = getAuthUser(event);
+    /*const authUser = getAuthUser(event);
     if (!authUser) {
       return {
         statusCode: 401,
@@ -267,7 +267,7 @@ exports.handler = async (event) => {
           error: 'Missing or invalid authorization header',
         }),
       };
-    }
+    }*/
 
     // ===== REPAIRS ROUTES =====
     if (method === 'POST' && path.includes('/repairs/save')) {
@@ -297,7 +297,7 @@ exports.handler = async (event) => {
 
       const result = await saveRepairsToDatabase(
         data,
-        authUser.username || 'system'
+        'system'
       );
       return {
         statusCode: 200,
@@ -318,18 +318,7 @@ exports.handler = async (event) => {
     }
 
     if (method === 'GET' && path.includes('/repairs/count/total')) {
-      let count;
-      if (authUser.role === 'global') {
-        count = await getRepairCount();
-      } else {
-        const repairs = await getAllRepairs();
-        const filtered = filterRepairsByRegion(
-          repairs,
-          authUser.role,
-          authUser.regions
-        );
-        count = filtered.length;
-      }
+      const count = await getRepairCount();
 
       return {
         statusCode: 200,
@@ -369,20 +358,15 @@ exports.handler = async (event) => {
 
     if (method === 'GET' && path.includes('/repairs')) {
       const repairs = await getAllRepairs();
-      const filtered = filterRepairsByRegion(
-        repairs,
-        authUser.role,
-        authUser.regions
-      );
 
       return {
         statusCode: 200,
         headers: buildHeaders(),
         body: JSON.stringify({
           success: true,
-          data: filtered,
-          count: filtered.length,
-          message: `Retrieved ${filtered.length} repairs (role: ${authUser.role})`,
+          data: repairs,
+          count: repairs.length,
+          message: `Retrieved ${repairs.length} repairs`,
         }),
       };
     }
