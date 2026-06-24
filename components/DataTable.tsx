@@ -26,6 +26,8 @@ import SwapVertOutlinedIcon from "@mui/icons-material/SwapVertOutlined";
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
 import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
 import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
+import ChevronLeftOutlinedIcon from "@mui/icons-material/ChevronLeftOutlined";
+import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
@@ -482,7 +484,20 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
                     </Select>
                 </Stack>
 
-                <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                    <Tooltip title="Previous page">
+                        <span>
+                            <IconButton
+                                size="small"
+                                disabled={page === 0}
+                                onClick={() => setPage((p) => p - 1)}
+                                sx={{ borderRadius: "6px", p: 0.5 }}
+                            >
+                                <ChevronLeftOutlinedIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+
                     {pageNumbers.map((p, idx) =>
                         typeof p === "number" ? (
                             <Typography
@@ -493,6 +508,8 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
                                     color: p === page + 1 ? "#0057ff" : "#68717d",
                                     fontWeight: p === page + 1 ? 700 : 400,
                                     cursor: "pointer",
+                                    minWidth: 20,
+                                    textAlign: "center",
                                     "&:hover": { textDecoration: p !== page + 1 ? "underline" : "none" },
                                 }}
                             >
@@ -504,6 +521,19 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
                             </Typography>
                         )
                     )}
+
+                    <Tooltip title="Next page">
+                        <span>
+                            <IconButton
+                                size="small"
+                                disabled={page >= totalPages - 1}
+                                onClick={() => setPage((p) => p + 1)}
+                                sx={{ borderRadius: "6px", p: 0.5 }}
+                            >
+                                <ChevronRightOutlinedIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
                 </Stack>
             </Stack>
         </Paper>
