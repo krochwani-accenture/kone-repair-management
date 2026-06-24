@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Box, Container, Stack, Typography, Alert } from "@mui/material";
 import { AppHeader } from "../components/AppHeader";
 import { ToolbarActions } from "../components/ToolbarActions";
@@ -41,6 +41,17 @@ export default function Page() {
   const handleClear = useCallback(() => {
     upload.clearFile();
   }, [upload]);
+
+  const hasNotification = !!(upload.error || database.error || upload.success || database.success);
+
+  useEffect(() => {
+    if (!hasNotification) return;
+    const timer = setTimeout(() => {
+      upload.clearMessages();
+      database.clearMessages();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [hasNotification, upload, database]);
 
   const uploadedRows = collectAllRows(upload.uploadedData);
 

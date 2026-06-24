@@ -66,6 +66,7 @@ export function ToolbarActions({ onFileChange, searchValue, onSearchChange }: To
     return (
         <>
             <Button
+                disabled
                 variant="text"
                 startIcon={<FilterAltOutlinedIcon sx={{ fontSize: 15 }} />}
                 sx={{
@@ -94,7 +95,9 @@ export function ToolbarActions({ onFileChange, searchValue, onSearchChange }: To
             </Button>
 
             <Select
-                value="Netherland"
+                value=""
+                disabled
+                displayEmpty
                 size="small"
                 IconComponent={KeyboardArrowDownOutlinedIcon}
                 sx={{
@@ -106,7 +109,7 @@ export function ToolbarActions({ onFileChange, searchValue, onSearchChange }: To
                     color: "#68717d",
                 }}
             >
-                <MenuItem value="Netherland">Netherland</MenuItem>
+                <MenuItem value="">Select</MenuItem>
             </Select>
 
             <TextField

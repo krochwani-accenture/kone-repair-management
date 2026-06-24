@@ -1,0 +1,92 @@
+{
+    "price_valid": {
+        "M": {
+            "new": {
+                "BOOL": true
+            },
+            "old": {
+                "BOOL": false
+            }
+        }
+    },
+    "translation_done": {
+        "M": {
+            "new": {
+                "BOOL": true
+            },
+            "old": {
+                "BOOL": false
+            }
+        }
+    },
+    "item": {
+        "M": {
+            "new": {
+                "S": "Machine Brake Coil"
+            },
+            "old": {
+                "S": "Sample Repair Item 149"
+            }
+        }
+    },
+    "category_3": {
+        "M": {
+            "new": {
+                "S": "03001 Hydraulic Lift"
+            },
+            "old": {
+                "S": "03000 Elevator"
+            }
+        }
+    },
+    "editable_product_details": {
+        "M": {
+            "new": {
+                "BOOL": false
+            },
+            "old": {
+                "BOOL": true
+            }
+        }
+    },
+    "category_2": {
+        "M": {
+            "new": {
+                "S": "14202 Safety Components"
+            },
+            "old": {
+                "S": "14200 Labels"
+            }
+        }
+    },
+    "category_1": {
+        "M": {
+            "new": {
+                "S": "00003 Dumbwaiter"
+            },
+            "old": {
+                "S": "00000 Elevator"
+            }
+        }
+    },
+    "action": {
+        "M": {
+            "new": {
+                "S": "Guide Rail Inspection"
+            },
+            "old": {
+                "S": "Repair Action 149"
+            }
+        }
+    },
+    "extended_to_sales_org": {
+        "M": {
+            "new": {
+                "BOOL": false
+            },
+            "old": {
+                "BOOL": true
+            }
+        }
+    }
+}

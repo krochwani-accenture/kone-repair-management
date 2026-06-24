@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kone Repair Management – Data Flow</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4f6f8;
+      padding: 32px 24px;
+      color: #1f2933;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 13px;
+      color: #68717d;
+      margin-bottom: 36px;
+    }
+
+    /* ── Three-column layout ── */
+    .flows {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 28px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .flow {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid #dfe3e8;
+      padding: 24px 20px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .flow-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 22px;
+      padding: 6px 18px;
+      border-radius: 20px;
+      color: #fff;
+    }
+
+    .upload-title  { background: #0057ff; }
+    .save-title    { background: #059669; }
+    .db-title      { background: #7c3aed; }
+
+    /* ── Steps ── */
+    .step {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .box {
+      width: 100%;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: center;
+      border: 1.5px solid transparent;
+    }
+
+    /* colour variants */
+    .box-action {
+      background: #eef4ff;
+      border-color: #c3d9ff;
+      color: #0046cc;
+      font-weight: 600;
+    }
+
+    .box-process {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #065f46;
+    }
+
+    .box-result {
+      background: #faf5ff;
+      border-color: #ddd6fe;
+      color: #4c1d95;
+    }
+
+    .box-success {
+      background: #f0fdf4;
+      border-color: #6ee7b7;
+      color: #065f46;
+      font-weight: 600;
+    }
+
+    .box-info {
+      background: #fff8f0;
+      border-color: #fcd9a0;
+      color: #92400e;
+    }
+
+    /* ── Arrow ── */
+    .arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 4px 0;
+    }
+
+    .arrow-line {
+      width: 2px;
+      height: 14px;
+      background: #cbd5e1;
+    }
+
+    .arrow-head {
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 8px solid #cbd5e1;
+    }
+
+    .arrow-label {
+      font-size: 10px;
+      color: #94a3b8;
+      margin-top: 2px;
+      margin-bottom: 2px;
+    }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: #374151;
+    }
+
+    .legend-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Kone Repair Management — How Data Flows</h1>
+  <p class="subtitle">What happens behind the scenes when you click each button</p>
+
+  <div class="flows">
+
+    <!-- ─── FLOW 1: Upload ─── -->
+    <div class="flow">
+      <div class="flow-title upload-title">① Click "Upload"</div>
+
+      <div class="step">
+        <div class="box box-action">User clicks <strong>Upload</strong> button</div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-info">A pop-up dialog opens asking you to choose a file</div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-action">User picks an <strong>Excel file (.xlsx)</strong> from their computer</div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-info">Selected file name is shown inside the pop-up</div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-label">Next step ↓</div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-action">User clicks <strong>Save</strong> inside the pop-up</div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-process">Pop-up closes. File is handed to the app and a <strong>Load</strong> bar appears at the top</div>
+      </div>
+    </div>
+
+    <!-- ─── FLOW 2: Load ─── -->
+    <div class="flow">
+      <div class="flow-title save-title">② Click "Load"</div>
+
+      <div class="step">
+        <div class="box box-action">User clicks <strong>Load</strong> in the file bar</div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-process">App reads the Excel file and converts every row into data it can understand</div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-process">All rows are loaded <strong>into the browser's memory</strong><br/>(nothing is saved yet)</div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-success">✅ "File loaded successfully. Preview is ready." message shown for 5 seconds</div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-result">Table is now filled with the uploaded rows &amp; <strong>Save to Database</strong> button appears</div>
+      </div>
+    </div>
+
+    <!-- ─── FLOW 3: Save to Database ─── -->
+    <div class="flow">
+      <div class="flow-title db-title">③ Click "Save to Database"</div>
+
+      <div class="step">
+        <div class="box box-action">User clicks <strong>Save to Database</strong></div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-process">All rows from the table are packaged and sent to the <strong>server</strong></div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-process">Server checks each row:<br/>🆕 New row → <strong>Insert</strong><br/>🔄 Changed row → <strong>Update</strong><br/>✓ Same row → <strong>Skip</strong></div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-process">Server saves everything into the <strong>Database</strong> permanently</div>
+      </div>
+
+      <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+      <div class="step">
+        <div class="box box-success">✅ Success message shown:<br/>"Inserted: X, Updated: Y, Skipped: Z"</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#eef4ff; border:1.5px solid #c3d9ff;"></div>
+      User action (button click)
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#f0fdf4; border:1.5px solid #bbf7d0;"></div>
+      App processing
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#faf5ff; border:1.5px solid #ddd6fe;"></div>
+      Visual result
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#fff8f0; border:1.5px solid #fcd9a0;"></div>
+      Information shown
+    </div>
+  </div>
+
+</body>
+</html>

@@ -131,14 +131,16 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
         (e: React.MouseEvent<HTMLButtonElement>) => {
             if (isFilterOpen) {
                 setAnchorEl(null);
-                setFilteredStatuses([]);
             } else {
                 setAnchorEl(e.currentTarget);
-                setFilteredStatuses([]);
             }
         },
         [isFilterOpen]
     );
+
+    const handleClose = useCallback(() => {
+        setAnchorEl(null);
+    }, []);
 
     const handleToggle = useCallback((status: string) => {
         setFilteredStatuses((prev) => {
@@ -149,7 +151,7 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
         });
     }, []);
 
-    const handleClear = useCallback(() => {
+    const handleClearFilter = useCallback(() => {
         setAnchorEl(null);
         setFilteredStatuses([]);
     }, []);
@@ -193,7 +195,7 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
         }
 
         // Apply status filter
-        if (isFilterOpen && filteredStatuses.length > 0) {
+        if (filteredStatuses.length > 0) {
             result = result.filter(({ originalIndex }) => {
                 const status = statusPalette[originalIndex % statusPalette.length];
                 return filteredStatuses.indexOf(status.label) >= 0;
@@ -212,7 +214,7 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
         }
 
         return result;
-    }, [rows, searchQuery, isFilterOpen, filteredStatuses, sortColumn, sortDirection]);
+    }, [rows, searchQuery, filteredStatuses, sortColumn, sortDirection]);
 
     const visibleRows = useMemo(() => {
         const start = page * rowsPerPage;
@@ -255,33 +257,49 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
                                         >
                                             <span>{column}</span>
                                             {sortableColumnIndices.has(index) && (
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() => handleSort(colName)}
-                                                    sx={{
-                                                        p: 0.25,
-                                                        borderRadius: "4px",
-                                                        backgroundColor: sortDir
-                                                            ? "#dce8ff"
-                                                            : "transparent",
-                                                    }}
+                                                <Tooltip
+                                                    title={
+                                                        sortDir === "asc"
+                                                            ? "Sorted ascending — click to sort descending"
+                                                            : sortDir === "desc"
+                                                            ? "Sorted descending — click to clear sort"
+                                                            : "Click to sort ascending"
+                                                    }
+                                                    placement="top"
                                                 >
-                                                    {getSortIcon(sortDir)}
-                                                </IconButton>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => handleSort(colName)}
+                                                        sx={{
+                                                            p: 0.25,
+                                                            borderRadius: "4px",
+                                                            backgroundColor: sortDir
+                                                                ? "#dce8ff"
+                                                                : "transparent",
+                                                        }}
+                                                    >
+                                                        {getSortIcon(sortDir)}
+                                                    </IconButton>
+                                                </Tooltip>
                                             )}
                                             {filterColumnIndices.has(index) && (
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={handleFilterClick}
-                                                    sx={{
-                                                        p: 0.25,
-                                                        color: isFilterOpen ? "#0057ff" : "inherit",
-                                                        backgroundColor: isFilterOpen ? "#dce8ff" : "transparent",
-                                                        borderRadius: "4px",
-                                                    }}
+                                                <Tooltip
+                                                    title={isFilterOpen ? "Clear filter" : "Filter by status"}
+                                                    placement="top"
                                                 >
-                                                    <FilterAltOutlinedIcon sx={{ fontSize: 14 }} />
-                                                </IconButton>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={handleFilterClick}
+                                                        sx={{
+                                                            p: 0.25,
+                                                            color: isFilterOpen ? "#0057ff" : "inherit",
+                                                            backgroundColor: isFilterOpen ? "#dce8ff" : "transparent",
+                                                            borderRadius: "4px",
+                                                        }}
+                                                    >
+                                                        <FilterAltOutlinedIcon sx={{ fontSize: 14 }} />
+                                                    </IconButton>
+                                                </Tooltip>
                                             )}
                                         </Stack>
                                     </TableCell>
@@ -304,7 +322,7 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
                         ) : (
                             visibleRows.map(({ row, originalIndex }, vi) => (
                                 <TableRow
-                                    key={`${originalIndex}-${row["Repair ID"] || originalIndex}`}
+                                    key={`${originalIndex}-${row["Repair ID"] ?? row["ID"] ?? originalIndex}`}
                                     sx={{
                                         height: 45,
                                         backgroundColor: vi % 2 === 0 ? "#ffffff" : "#f6f7f9",
@@ -312,7 +330,10 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
                                     }}
                                 >
                                     {sourceColumns.map((header) => {
-                                        const value = row[header] ?? "-";
+                                        const value = header === "Repair ID"
+                                            ? (row["Repair ID"] ?? row["ID"] ?? `R${String(originalIndex + 1).padStart(9, "0")}`)
+                                            : (row[header] ?? "-");
+                                        const displayValue = String(value);
                                         return (
                                             <TableCell
                                                 key={header}
@@ -327,7 +348,9 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
                                                     whiteSpace: "nowrap",
                                                 }}
                                             >
-                                                {String(value)}
+                                                <Tooltip title={displayValue !== "-" ? displayValue : ""} placement="top">
+                                                    <span>{displayValue}</span>
+                                                </Tooltip>
                                             </TableCell>
                                         );
                                     })}
@@ -338,16 +361,20 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
                                     ))}
                                     <TableCell align="center" sx={{ borderBottom: "1px solid #dfe3e8", px: 1 }}>
                                         <Tooltip title="Edit">
-                                            <IconButton size="small" sx={{ color: "#111827" }}>
-                                                <EditOutlinedIcon sx={{ fontSize: 17 }} />
-                                            </IconButton>
+                                            <span>
+                                                <IconButton disabled size="small">
+                                                    <EditOutlinedIcon sx={{ fontSize: 17 }} />
+                                                </IconButton>
+                                            </span>
                                         </Tooltip>
                                     </TableCell>
                                     <TableCell align="center" sx={{ borderBottom: "1px solid #dfe3e8", px: 1 }}>
                                         <Tooltip title="Delete">
-                                            <IconButton size="small" sx={{ color: "#111827" }}>
-                                                <DeleteOutlineOutlinedIcon sx={{ fontSize: 17 }} />
-                                            </IconButton>
+                                            <span>
+                                                <IconButton disabled size="small">
+                                                    <DeleteOutlineOutlinedIcon sx={{ fontSize: 17 }} />
+                                                </IconButton>
+                                            </span>
                                         </Tooltip>
                                     </TableCell>
                                 </TableRow>
@@ -356,6 +383,14 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            {/* Click-outside backdrop to close filter popup */}
+            {isFilterOpen && (
+                <Box
+                    sx={{ position: "fixed", inset: 0, zIndex: 1299 }}
+                    onClick={handleClose}
+                />
+            )}
 
             {/* Filter dropdown */}
             <Popper
@@ -378,7 +413,7 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
                         <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#68717d", textTransform: "uppercase", letterSpacing: 0.5 }}>
                             Filter by status
                         </Typography>
-                        <IconButton size="small" onClick={handleClear} sx={{ p: 0.25 }}>
+                        <IconButton size="small" onClick={handleClose} sx={{ p: 0.25 }}>
                             <CloseOutlinedIcon sx={{ fontSize: 14, color: "#68717d" }} />
                         </IconButton>
                     </Stack>
@@ -410,7 +445,7 @@ export function DataTable({ rows, searchQuery }: DataTableProps) {
                     </Box>
                     {hasActiveFilter && (
                         <Stack direction="row" sx={{ px: 1.5, py: 0.75, borderTop: "1px solid #eef0f2", justifyContent: "center" }}>
-                            <Typography onClick={handleClear} sx={{ fontSize: 11, fontWeight: 600, color: "#0057ff", cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
+                            <Typography onClick={handleClearFilter} sx={{ fontSize: 11, fontWeight: 600, color: "#0057ff", cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
                                 Clear filter
                             </Typography>
                         </Stack>
